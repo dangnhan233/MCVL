@@ -90,6 +90,17 @@ jobs:
                           cv.put(MediaStore.MediaColumns.IS_PENDING, 0);
                       }
                       uri = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
+                      if (uri == null) {
+                          ContentValues root = new ContentValues();
+                          root.put(MediaStore.MediaColumns.DISPLAY_NAME, "MCVL_SERVER_DEBUG_FALLBACK_" +
+                                  new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date()) + ".log");
+                          root.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
+                          if (Build.VERSION.SDK_INT >= 29) {
+                              root.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download");
+                              root.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                          }
+                          uri = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, root);
+                      }
                   } catch (Throwable t) {
                       android.util.Log.e("MCVL_DEBUG", "init failed", t);
                   }
@@ -101,7 +112,9 @@ jobs:
               static synchronized void log(String message) {
                   String line = System.currentTimeMillis() + " " + message + "\n";
                   android.util.Log.i("MCVL_DEBUG", message);
-                  if (app == null || uri == null) return;
+                  if (app == null || uri == null) {
+                      return;
+                  }
                   try {
                       OutputStream out = app.getContentResolver().openOutputStream(uri, "wa");
                       if (out != null) {
