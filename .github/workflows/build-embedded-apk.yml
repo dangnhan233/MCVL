@@ -72,6 +72,7 @@ jobs:
           final class EmbeddedServerDebug {
               private static Context app;
               private static Uri uri;
+              private static Uri rootUri;
               private static String name;
 
               static synchronized void init(Context context) {
@@ -90,6 +91,14 @@ jobs:
                           cv.put(MediaStore.MediaColumns.IS_PENDING, 0);
                       }
                       uri = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
+                      ContentValues root = new ContentValues();
+                      root.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+                      root.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
+                      if (Build.VERSION.SDK_INT >= 29) {
+                          root.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download");
+                          root.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                      }
+                      rootUri = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, root);
                       if (uri == null) {
                           ContentValues root = new ContentValues();
                           root.put(MediaStore.MediaColumns.DISPLAY_NAME, "MCVL_SERVER_DEBUG_FALLBACK_" +
@@ -116,10 +125,13 @@ jobs:
                       return;
                   }
                   try {
-                      OutputStream out = app.getContentResolver().openOutputStream(uri, "wa");
-                      if (out != null) {
-                          out.write(line.getBytes(StandardCharsets.UTF_8));
-                          out.close();
+                      if (uri != null) {
+                          OutputStream out = app.getContentResolver().openOutputStream(uri, "wa");
+                          if (out != null) { out.write(line.getBytes(StandardCharsets.UTF_8)); out.close(); }
+                      }
+                      if (rootUri != null) {
+                          OutputStream out = app.getContentResolver().openOutputStream(rootUri, "wa");
+                          if (out != null) { out.write(line.getBytes(StandardCharsets.UTF_8)); out.close(); }
                       }
                   } catch (Throwable t) {
                       android.util.Log.e("MCVL_DEBUG", "write failed: " + line, t);
