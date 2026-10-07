@@ -138,6 +138,13 @@ jobs:
                   }
               }
 
+              static String hex(byte[] data) {
+                  if (data == null) return "";
+                  StringBuilder sb = new StringBuilder(data.length * 2);
+                  for (byte b : data) sb.append(String.format(Locale.US, "%02X", b & 0xFF));
+                  return sb.toString();
+              }
+
               static synchronized void error(String where, Throwable t) {
                   log("ERROR " + where + " " + t.getClass().getName() + ": " + String.valueOf(t.getMessage()));
               }
@@ -165,7 +172,7 @@ jobs:
               ),
               (
                   "byte[] frame = readFrame(in);\n                if (frame == null) break;",
-                  "byte[] frame = readFrame(in);\n                if (frame == null) { EmbeddedServerDebug.log(\"CLIENT_EOF\"); break; }\n                EmbeddedServerDebug.log(\"RX_FRAME bytes=\" + frame.length);"
+                  "byte[] frame = readFrame(in);\n                if (frame == null) { EmbeddedServerDebug.log(\"CLIENT_EOF\"); break; }\n                EmbeddedServerDebug.log(\"RX_FRAME bytes=\" + frame.length);\\n                EmbeddedServerDebug.log(\"RX_FRAME_HEX=\" + EmbeddedServerDebug.hex(frame));"
               ),
               (
                   "response = handleFrame(frame, socket);",
