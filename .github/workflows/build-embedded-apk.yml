@@ -37,32 +37,35 @@ jobs:
           "$SDKMANAGER" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Extract source
+        id: extract
         run: |
           rm -rf source
           mkdir source
           unzip -q MCVL_EMBEDDED_LOCAL_SERVER_SOURCE-1.zip -d source
-          test -f source/mcvl-android-source/build_apk.sh
+          BUILD_SH=$(find source -type f -name build_apk.sh -print -quit)
+          test -n "$BUILD_SH"
+          SRC_DIR=$(dirname "$BUILD_SH")
+          echo "Source directory: $SRC_DIR"
+          echo "src_dir=$SRC_DIR" >> "$GITHUB_OUTPUT"
 
       - name: Build APK
-        working-directory: source/mcvl-android-source
-        env:
-          ANDROID_SDK: ${{ env.ANDROID_SDK_ROOT }}
         run: |
+          cd "${{ steps.extract.outputs.src_dir }}"
           chmod +x build_apk.sh
           ./build_apk.sh
 
       - name: Verify APK
-        working-directory: source/mcvl-android-source
         run: |
-          test -f out/MinhChuVoLam-2.0.3.apk
-          "$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner" verify --verbose out/MinhChuVoLam-2.0.3.apk
-          sha256sum out/MinhChuVoLam-2.0.3.apk
-          ls -lh out/MinhChuVoLam-2.0.3.apk
+          APK="${{ steps.extract.outputs.src_dir }}/out/MinhChuVoLam-2.0.3.apk"
+          test -f "$APK"
+          "$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner" verify --verbose "$APK"
+          sha256sum "$APK"
+          ls -lh "$APK"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: MCVL-2.0.3-embedded-server
-          path: source/mcvl-android-source/out/MinhChuVoLam-2.0.3.apk
+          path: "${{ steps.extract.outputs.src_dir }}/out/MinhChuVoLam-2.0.3.apk"
           if-no-files-found: error
           retention-days: 30
