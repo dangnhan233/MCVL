@@ -35,6 +35,7 @@ jobs:
           test -x "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          test -f "$ANDROID_SDK_ROOT/platforms/android-34/android.jar"
 
       - name: Extract source
         id: extract
@@ -49,14 +50,17 @@ jobs:
           echo "src_dir=$SRC_DIR" >> "$GITHUB_OUTPUT"
 
       - name: Build APK
+        working-directory: source/mcvl-android-source/mcvl-android
+        env:
+          ANDROID_SDK: /usr/local/lib/android/sdk
         run: |
-          cd "${{ steps.extract.outputs.src_dir }}"
           chmod +x build_apk.sh
           ./build_apk.sh
 
       - name: Verify APK
+        working-directory: source/mcvl-android-source/mcvl-android
         run: |
-          APK="${{ steps.extract.outputs.src_dir }}/out/MinhChuVoLam-2.0.3.apk"
+          APK=out/MinhChuVoLam-2.0.3.apk
           test -f "$APK"
           "$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner" verify --verbose "$APK"
           sha256sum "$APK"
@@ -66,6 +70,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: MCVL-2.0.3-embedded-server
-          path: "${{ steps.extract.outputs.src_dir }}/out/MinhChuVoLam-2.0.3.apk"
+          path: source/mcvl-android-source/mcvl-android/out/MinhChuVoLam-2.0.3.apk
           if-no-files-found: error
           retention-days: 30
