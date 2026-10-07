@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - "MCVL_EMBEDDED_LOCAL_SERVER_SOURCE.zip"
+      - "MCVL_EMBEDDED_LOCAL_SERVER_SOURCE-1.zip"
       - ".github/workflows/build-embedded-apk.yml"
 
 jobs:
@@ -17,8 +17,8 @@ jobs:
 
       - name: Check source archive
         run: |
-          test -f MCVL_EMBEDDED_LOCAL_SERVER_SOURCE.zip
-          unzip -l MCVL_EMBEDDED_LOCAL_SERVER_SOURCE.zip | grep -q "mcvl-android-source/build_apk.sh"
+          test -f MCVL_EMBEDDED_LOCAL_SERVER_SOURCE-1.zip
+          unzip -l MCVL_EMBEDDED_LOCAL_SERVER_SOURCE-1.zip | grep -q "mcvl-android-source/build_apk.sh"
 
       - name: Install JDK 17
         uses: actions/setup-java@v4
@@ -38,7 +38,7 @@ jobs:
         run: |
           rm -rf source
           mkdir source
-          unzip -q MCVL_EMBEDDED_LOCAL_SERVER_SOURCE.zip -d source
+          unzip -q MCVL_EMBEDDED_LOCAL_SERVER_SOURCE-1.zip -d source
           test -f source/mcvl-android-source/build_apk.sh
 
       - name: Build APK
