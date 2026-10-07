@@ -49,6 +49,154 @@ jobs:
           echo "Source directory: $SRC_DIR"
           echo "src_dir=$SRC_DIR" >> "$GITHUB_OUTPUT"
 
+      - name: Inject MCVL server debug logging
+        working-directory: source/mcvl-android-source/mcvl-android
+        run: |
+          DEBUG_DIR=app/src/main/java/com/mcvl/android
+          cat > "$DEBUG_DIR/EmbeddedServerDebug.java" <<'EOF'
+          package com.mcvl.android;
+
+          import android.content.ContentResolver;
+          import android.content.ContentValues;
+          import android.content.Context;
+          import android.net.Uri;
+          import android.os.Build;
+          import android.provider.MediaStore;
+
+          import java.io.OutputStream;
+          import java.nio.charset.StandardCharsets;
+          import java.text.SimpleDateFormat;
+          import java.util.Date;
+          import java.util.Locale;
+
+          final class EmbeddedServerDebug {
+              private static Context app;
+              private static Uri uri;
+              private static String name;
+
+              static synchronized void init(Context context) {
+                  if (app != null) return;
+                  app = context.getApplicationContext();
+                  try {
+                      name = "MCVL_SERVER_DEBUG_" +
+                              new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date()) +
+                              ".log";
+                      ContentResolver cr = app.getContentResolver();
+                      ContentValues cv = new ContentValues();
+                      cv.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+                      cv.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
+                      if (Build.VERSION.SDK_INT >= 29) {
+                          cv.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/mcvl_debug");
+                          cv.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                      }
+                      uri = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
+                  } catch (Throwable t) {
+                      android.util.Log.e("MCVL_DEBUG", "init failed", t);
+                  }
+                  log("=== MCVL EMBEDDED SERVER DEBUG START ===");
+                  log("android=" + Build.VERSION.RELEASE + " sdk=" + Build.VERSION.SDK_INT);
+                  log("endpoint=127.0.0.1:9001");
+              }
+
+              static synchronized void log(String message) {
+                  String line = System.currentTimeMillis() + " " + message + "\n";
+                  android.util.Log.i("MCVL_DEBUG", message);
+                  if (app == null || uri == null) return;
+                  try {
+                      OutputStream out = app.getContentResolver().openOutputStream(uri, "wa");
+                      if (out != null) {
+                          out.write(line.getBytes(StandardCharsets.UTF_8));
+                          out.close();
+                      }
+                  } catch (Throwable t) {
+                      android.util.Log.e("MCVL_DEBUG", "write failed: " + line, t);
+                  }
+              }
+
+              static synchronized void error(String where, Throwable t) {
+                  log("ERROR " + where + " " + t.getClass().getName() + ": " + String.valueOf(t.getMessage()));
+              }
+          }
+          EOF
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("app/src/main/java/com/mcvl/android/EmbeddedLocalServer.java")
+          s = p.read_text(encoding="utf-8")
+
+          patches = [
+              (
+                  "public static synchronized void start(Context context) {",
+                  "public static synchronized void start(Context context) {\n        EmbeddedServerDebug.init(context);\n        EmbeddedServerDebug.log(\"start() called\");"
+              ),
+              (
+                  "serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName(HOST));",
+                  "serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName(HOST));\n            EmbeddedServerDebug.log(\"SERVER_STARTED port=\" + PORT);"
+              ),
+              (
+                  "t.setDaemon(true);\n                t.start();",
+                  "t.setDaemon(true);\n                EmbeddedServerDebug.log(\"CLIENT_ACCEPT remote=\" + socket.getRemoteSocketAddress());\n                t.start();"
+              ),
+              (
+                  "byte[] frame = readFrame(in);\n                if (frame == null) break;",
+                  "byte[] frame = readFrame(in);\n                if (frame == null) { EmbeddedServerDebug.log(\"CLIENT_EOF\"); break; }\n                EmbeddedServerDebug.log(\"RX_FRAME bytes=\" + frame.length);"
+              ),
+              (
+                  "response = handleFrame(frame, socket);",
+                  "response = handleFrame(frame, socket);\n                    EmbeddedServerDebug.log(\"FRAME_HANDLED packets=\" + response.packets.size() + \" session=\" + (response.session != null));"
+              ),
+              (
+                  "response = new PacketList();",
+                  "EmbeddedServerDebug.error(\"handleFrame\", t);\n                    response = new PacketList();"
+              ),
+              (
+                  "int pid = pk.readUnsignedShort();",
+                  "int pid = pk.readUnsignedShort();\n            EmbeddedServerDebug.log(\"RX_PACKET pid=\" + pid + \" session=\" + (sess != null));"
+              ),
+              (
+                  "private PacketResult doLogin(String acct, String pwd, Socket socket) throws IOException {",
+                  "private PacketResult doLogin(String acct, String pwd, Socket socket) throws IOException {\n        EmbeddedServerDebug.log(\"LOGIN acct=\" + acct + \" pwdLen=\" + pwd.length());"
+              ),
+              (
+                  "return session(P_ACCOUNT, new W().utf(token).s8(0).bytes(), s);",
+                  "EmbeddedServerDebug.log(\"LOGIN_OK acct=\" + acct + \" sid=\" + s.sid);\n        return session(P_ACCOUNT, new W().utf(token).s8(0).bytes(), s);"
+              ),
+              (
+                  "s.ch = ref.ch; s.inGame=true;",
+                  "s.ch = ref.ch; s.inGame=true;\n        EmbeddedServerDebug.log(\"ENTER_OK name=\" + name + \" pid=\" + s.ch.pid + \" tx=\" + s.ch.tx + \" ty=\" + s.ch.ty);"
+              ),
+              (
+                  "int sub = pk.readByte();",
+                  "int sub = pk.readByte();\n        EmbeddedServerDebug.log(\"MOVE sub=\" + sub + \" session=\" + (s != null));"
+              ),
+              (
+                  "private void writeResponse(DataOutputStream out, PacketList response) throws IOException {",
+                  "private void writeResponse(DataOutputStream out, PacketList response) throws IOException {\n        StringBuilder dbg = new StringBuilder(\"TX_RESPONSE packets=\").append(response.packets.size());\n        for (Packet p : response.packets) dbg.append(\" [\").append(p.pid).append(p.error ? \":ERR\" : \"\").append(\",\").append(p.data.length).append(\"]\");\n        EmbeddedServerDebug.log(dbg.toString());"
+              ),
+              (
+                  "catch (SocketException e) {\n                if (running) e.printStackTrace();",
+                  "catch (SocketException e) {\n                if (running) { EmbeddedServerDebug.error(\"acceptLoop\", e); e.printStackTrace(); }"
+              ),
+              (
+                  "catch (IOException e) {\n                if (running) e.printStackTrace();",
+                  "catch (IOException e) {\n                if (running) { EmbeddedServerDebug.error(\"acceptLoop\", e); e.printStackTrace(); }"
+              ),
+              (
+                  "running = false;\n            serverSocket = null;\n            e.printStackTrace();",
+                  "running = false;\n            serverSocket = null;\n            EmbeddedServerDebug.error(\"SERVER_START\", e);\n            e.printStackTrace();"
+              )
+          ]
+
+          for old, new in patches:
+              if old not in s:
+                  raise SystemExit("PATCH_NOT_FOUND: " + old.splitlines()[0])
+              s = s.replace(old, new, 1)
+
+          p.write_text(s, encoding="utf-8")
+          print("Embedded server debug instrumentation injected successfully.")
+          PY
+
       - name: Build APK
         working-directory: source/mcvl-android-source/mcvl-android
         env:
@@ -69,7 +217,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MCVL-2.0.3-embedded-server
+          name: MCVL-2.0.3-embedded-server-debug
           path: source/mcvl-android-source/mcvl-android/out/MinhChuVoLam-2.0.3.apk
           if-no-files-found: error
           retention-days: 30
