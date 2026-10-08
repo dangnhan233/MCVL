@@ -1,0 +1,45 @@
+{
+  "pid": 1011,
+  "status": "phase4.1-structurally-verified",
+  "verified": false,
+  "fields": [
+    {
+      "name": "length_field",
+      "offset": 4,
+      "length": 4,
+      "encoding": "u32_be",
+      "status": "verified_structural_rule",
+      "evidence": [
+        "2 independent PID 1011 observations",
+        "2 independent PID 1026 observations",
+        "value equals frame_length - 8 in all 4 observations"
+      ]
+    },
+    {
+      "name": "pid_field",
+      "offset": 11,
+      "length": 2,
+      "encoding": "u16_be",
+      "status": "verified_structural_rule",
+      "evidence": [
+        "2 independent PID 1011 observations",
+        "2 independent PID 1026 observations",
+        "value equals logged PID in all 4 observations"
+      ]
+    }
+  ],
+  "unknown": [
+    "bytes[0:4] header/prefix semantics",
+    "bytes[8:11] semantics",
+    "checksum algorithm/status",
+    "payload semantics",
+    "session semantics",
+    "server response format"
+  ],
+  "notes": [
+    "Phase 4.1 evidence added from two independent logs/connections.",
+    "RX_CHUNK read boundaries are not treated as TCP packet boundaries.",
+    "Structural offsets are verified only against the supplied Phase 4.1 evidence set.",
+    "Protocol semantic verification remains incomplete."
+  ]
+}
