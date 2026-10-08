@@ -1,0 +1,46 @@
+[
+  {
+    "capture_id": "MCVL_SERVER_DEBUG_20261008_205050_pid1026",
+    "timestamp_ms": 1791467461744,
+    "direction": "C2S",
+    "remote": "/127.0.0.1:49616",
+    "pid": 1026,
+    "session": false,
+    "raw_hex": "44334BFF0000001B010018040200023130000000005AFF005C009B0000023131000136",
+    "response_packets": 1,
+    "source_log": "MCVL_SERVER_DEBUG_20261008_205050.log.txt"
+  },
+  {
+    "capture_id": "MCVL_SERVER_DEBUG_20261008_205050_pid1011",
+    "timestamp_ms": 1791467464653,
+    "direction": "C2S",
+    "remote": "/127.0.0.1:49616",
+    "pid": 1011,
+    "session": false,
+    "raw_hex": "00004B010000001101000E03F300000000000100F001400000",
+    "response_packets": 1,
+    "source_log": "MCVL_SERVER_DEBUG_20261008_205050.log.txt"
+  },
+  {
+    "capture_id": "MCVL_SERVER_DEBUG_20261008_205015_pid1026",
+    "timestamp_ms": 1791467428961,
+    "direction": "C2S",
+    "remote": "/127.0.0.1:54030",
+    "pid": 1026,
+    "session": false,
+    "raw_hex": "44334BFF0000001B010018040200023130000000005AFF005C009B0000023131000136",
+    "response_packets": 1,
+    "source_log": "MCVL_SERVER_DEBUG_20261008_205015.log.txt"
+  },
+  {
+    "capture_id": "MCVL_SERVER_DEBUG_20261008_205015_pid1011",
+    "timestamp_ms": 1791467433449,
+    "direction": "C2S",
+    "remote": "/127.0.0.1:54032",
+    "pid": 1011,
+    "session": false,
+    "raw_hex": "00004B010000001101000E03F300000000000100F001400000",
+    "response_packets": 1,
+    "source_log": "MCVL_SERVER_DEBUG_20261008_205015.log.txt"
+  }
+]
