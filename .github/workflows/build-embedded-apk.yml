@@ -172,7 +172,7 @@ jobs:
               ),
               (
                   "byte[] frame = readFrame(in);\n                if (frame == null) break;",
-                  "byte[] frame = readFrame(in);\n                if (frame == null) { EmbeddedServerDebug.log(\"CLIENT_EOF\"); break; }\n                EmbeddedServerDebug.log(\"RX_FRAME bytes=\" + frame.length);\\n                EmbeddedServerDebug.log(\"RX_FRAME_HEX=\" + EmbeddedServerDebug.hex(frame));"
+                  "byte[] frame = readFrame(in);\n                if (frame == null) { EmbeddedServerDebug.log(\"CLIENT_EOF\"); break; }\n                EmbeddedServerDebug.log(\"RX_FRAME bytes=\" + frame.length);" + "\n                EmbeddedServerDebug.log(\\"RX_FRAME_HEX=\\" + EmbeddedServerDebug.hex(frame));"
               ),
               (
                   "response = handleFrame(frame, socket);",
