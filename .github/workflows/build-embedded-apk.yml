@@ -237,7 +237,7 @@ jobs:
               s = s.replace(old, new, 1)
           # Restore the 1026 FASTSTART handler.
           marker = "private static final int P_VERSION = 9950;"
-          inject = "\\n".join([
+          inject = "\n".join([
               "private static final int P_VERSION = 9950;",
               "    private static final int P_FASTSTART = 1026;"
           ])
@@ -246,7 +246,7 @@ jobs:
           s = s.replace(marker, inject, 1)
 
           marker = "            case P_VERSION: return hVersion();"
-          inject = "\\n".join([
+          inject = "\n".join([
               "            case P_VERSION: return hVersion();",
               "            case P_FASTSTART: return hFastStart(pk);"
           ])
@@ -255,7 +255,7 @@ jobs:
           s = s.replace(marker, inject, 1)
 
           marker = "    private PacketResult hVersion() throws IOException {"
-          inject = "\\n".join([
+          inject = "\n".join([
               "    private PacketResult hFastStart(DataInputStream pk) throws IOException {",
               "        while (pk.available() > 0) pk.readUnsignedByte();",
               "        W w = new W();",
