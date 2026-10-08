@@ -160,64 +160,72 @@ jobs:
 
           patches = [
               (
-                  "public static synchronized void start(Context context) {",
-                  "public static synchronized void start(Context context) {\n        EmbeddedServerDebug.init(context);\n        EmbeddedServerDebug.log(\"start() called\");"
+                  '''public static synchronized void start(Context context) {''',
+                  '''public static synchronized void start(Context context) {
+        EmbeddedServerDebug.init(context);
+        EmbeddedServerDebug.log("start() called");'''
               ),
               (
-                  "serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName(HOST));",
-                  "serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName(HOST));\n            EmbeddedServerDebug.log(\"SERVER_STARTED port=\" + PORT);"
+                  '''serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName(HOST));''',
+                  '''serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName(HOST));
+            EmbeddedServerDebug.log("SERVER_STARTED port=" + PORT);'''
               ),
               (
-                  "t.setDaemon(true);\n                t.start();",
-                  "t.setDaemon(true);\n                EmbeddedServerDebug.log(\"CLIENT_ACCEPT remote=\" + socket.getRemoteSocketAddress());\n                t.start();"
+                  '''t.setDaemon(true);
+                t.start();''',
+                  '''t.setDaemon(true);
+                EmbeddedServerDebug.log("CLIENT_ACCEPT remote=" + socket.getRemoteSocketAddress());
+                t.start();'''
               ),
               (
-                  "byte[] frame = readFrame(in);\n                if (frame == null) break;",
-                  "byte[] frame = readFrame(in);\n                if (frame == null) { EmbeddedServerDebug.log(\"CLIENT_EOF\"); break; }\n                EmbeddedServerDebug.log(\"RX_FRAME bytes=\" + frame.length);" + "\n                EmbeddedServerDebug.log(\\"RX_FRAME_HEX=\\" + EmbeddedServerDebug.hex(frame));"
+                  '''byte[] frame = readFrame(in);
+                if (frame == null) break;''',
+                  '''byte[] frame = readFrame(in);
+                if (frame == null) { EmbeddedServerDebug.log("CLIENT_EOF"); break; }
+                EmbeddedServerDebug.log("RX_FRAME bytes=" + frame.length);
+                EmbeddedServerDebug.log("RX_FRAME_HEX=" + EmbeddedServerDebug.hex(frame));'''
               ),
               (
-                  "response = handleFrame(frame, socket);",
-                  "response = handleFrame(frame, socket);\n                    EmbeddedServerDebug.log(\"FRAME_HANDLED packets=\" + response.packets.size() + \" session=\" + (response.session != null));"
+                  '''response = handleFrame(frame, socket);''',
+                  '''response = handleFrame(frame, socket);
+                    EmbeddedServerDebug.log("FRAME_HANDLED packets=" + response.packets.size() + " session=" + (response.session != null));'''
               ),
               (
-                  "response = new PacketList();",
-                  "EmbeddedServerDebug.error(\"handleFrame\", t);\n                    response = new PacketList();"
+                  '''response = new PacketList();''',
+                  '''EmbeddedServerDebug.error("handleFrame", t);
+                    response = new PacketList();'''
               ),
               (
-                  "int pid = pk.readUnsignedShort();",
-                  "int pid = pk.readUnsignedShort();\n            EmbeddedServerDebug.log(\"RX_PACKET pid=\" + pid + \" session=\" + (sess != null));"
+                  '''int pid = pk.readUnsignedShort();''',
+                  '''int pid = pk.readUnsignedShort();
+            EmbeddedServerDebug.log("RX_PACKET pid=" + pid + " session=" + (sess != null));'''
               ),
               (
-                  "private PacketResult doLogin(String acct, String pwd, Socket socket) throws IOException {",
-                  "private PacketResult doLogin(String acct, String pwd, Socket socket) throws IOException {\n        EmbeddedServerDebug.log(\"LOGIN acct=\" + acct + \" pwdLen=\" + pwd.length());"
+                  '''private PacketResult doLogin(String acct, String pwd, Socket socket) throws IOException {''',
+                  '''private PacketResult doLogin(String acct, String pwd, Socket socket) throws IOException {
+        EmbeddedServerDebug.log("LOGIN acct=" + acct + " pwdLen=" + pwd.length());'''
               ),
               (
-                  "return session(P_ACCOUNT, new W().utf(token).s8(0).bytes(), s);",
-                  "EmbeddedServerDebug.log(\"LOGIN_OK acct=\" + acct + \" sid=\" + s.sid);\n        return session(P_ACCOUNT, new W().utf(token).s8(0).bytes(), s);"
+                  '''return session(P_ACCOUNT, new W().utf(token).s8(0).bytes(), s);''',
+                  '''EmbeddedServerDebug.log("LOGIN_OK acct=" + acct + " sid=" + s.sid);
+        return session(P_ACCOUNT, new W().utf(token).s8(0).bytes(), s);'''
               ),
               (
-                  "s.ch = ref.ch; s.inGame=true;",
-                  "s.ch = ref.ch; s.inGame=true;\n        EmbeddedServerDebug.log(\"ENTER_OK name=\" + name + \" pid=\" + s.ch.pid + \" tx=\" + s.ch.tx + \" ty=\" + s.ch.ty);"
+                  '''s.ch = ref.ch; s.inGame=true;''',
+                  '''s.ch = ref.ch; s.inGame=true;
+        EmbeddedServerDebug.log("ENTER_OK name=" + name + " pid=" + s.ch.pid + " tx=" + s.ch.tx + " ty=" + s.ch.ty);'''
               ),
               (
-                  "int sub = pk.readByte();",
-                  "int sub = pk.readByte();\n        EmbeddedServerDebug.log(\"MOVE sub=\" + sub + \" session=\" + (s != null));"
+                  '''int sub = pk.readByte();''',
+                  '''int sub = pk.readByte();
+        EmbeddedServerDebug.log("MOVE sub=" + sub + " session=" + (s != null));'''
               ),
               (
-                  "private void writeResponse(DataOutputStream out, PacketList response) throws IOException {",
-                  "private void writeResponse(DataOutputStream out, PacketList response) throws IOException {\n        StringBuilder dbg = new StringBuilder(\"TX_RESPONSE packets=\").append(response.packets.size());\n        for (Packet p : response.packets) dbg.append(\" [\").append(p.pid).append(p.error ? \":ERR\" : \"\").append(\",\").append(p.data.length).append(\"]\");\n        EmbeddedServerDebug.log(dbg.toString());"
-              ),
-              (
-                  "catch (SocketException e) {\n                if (running) e.printStackTrace();",
-                  "catch (SocketException e) {\n                if (running) { EmbeddedServerDebug.error(\"acceptLoop\", e); e.printStackTrace(); }"
-              ),
-              (
-                  "catch (IOException e) {\n                if (running) e.printStackTrace();",
-                  "catch (IOException e) {\n                if (running) { EmbeddedServerDebug.error(\"acceptLoop\", e); e.printStackTrace(); }"
-              ),
-              (
-                  "running = false;\n            serverSocket = null;\n            e.printStackTrace();",
-                  "running = false;\n            serverSocket = null;\n            EmbeddedServerDebug.error(\"SERVER_START\", e);\n            e.printStackTrace();"
+                  '''private void writeResponse(DataOutputStream out, PacketList response) throws IOException {''',
+                  '''private void writeResponse(DataOutputStream out, PacketList response) throws IOException {
+        StringBuilder dbg = new StringBuilder("TX_RESPONSE packets=").append(response.packets.size());
+        for (Packet p : response.packets) dbg.append(" [").append(p.pid).append(p.error ? ":ERR" : "").append(",").append(p.data.length).append("]");
+        EmbeddedServerDebug.log(dbg.toString());'''
               )
           ]
 
