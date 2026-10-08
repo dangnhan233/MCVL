@@ -49,6 +49,80 @@ jobs:
           echo "Source directory: $SRC_DIR"
           echo "src_dir=$SRC_DIR" >> "$GITHUB_OUTPUT"
 
+      - name: Patch FASTSTART 1026 handling
+        working-directory: source/mcvl-android-source/mcvl-android
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("app/src/main/java/com/mcvl/android/EmbeddedLocalServer.java")
+          s = p.read_text(encoding="utf-8")
+
+          s = s.replace(
+              "private static final int P_DELETE = 1024;",
+              "private static final int P_DELETE = 1024;\n    private static final int P_FASTSTART = 1026;",
+              1
+          )
+          s = s.replace(
+              "case P_DELETE: return error(P_DELETE, 1, \"Server local chưa hỗ trợ xoá nhân vật.\");",
+              "case P_DELETE: return error(P_DELETE, 1, \"Server local chưa hỗ trợ xoá nhân vật.\");\n            case P_FASTSTART: return hFastStart(pk, sess, socket);",
+              1
+          )
+
+          marker = "    private PacketResult hRegister(DataInputStream pk) throws IOException {"
+          method = """    private PacketResult hFastStart(DataInputStream pk, Session s, Socket socket) throws IOException {
+        String acct = readUtf(pk).trim();
+        if (pk.available() >= 2) pk.readUnsignedByte();
+        if (pk.available() >= 1) pk.readUnsignedByte();
+        if (pk.available() >= 8) { pk.readInt(); pk.readInt(); }
+        if (pk.available() >= 1) pk.readUnsignedByte();
+        if (pk.available() >= 2) readUtf(pk);
+        if (pk.available() >= 2) readUtf(pk);
+
+        if (acct.length() == 0) acct = "local";
+
+        Account a = store.account(acct);
+        if (a == null) {
+            a = new Account();
+            a.pwd = "";
+            a.chars = new CharData[2];
+            store.accounts.put(acct, a);
+        }
+
+        if (s == null) {
+            String token = "fast_" + Long.toHexString(RNG.nextLong()) + Long.toHexString(RNG.nextLong());
+            s = new Session(token, acct, socket);
+            sessions.put(token, s);
+            bySid.put(s.sid, s);
+        }
+
+        CharData c = a.chars[0];
+        if (c == null) {
+            c = new CharData();
+            c.name = acct;
+            c.pid = store.nextPid++;
+            c.tx = SPAWN_TX;
+            c.ty = SPAWN_TY;
+            a.chars[0] = c;
+            store.save();
+        }
+
+        s.ch = c;
+        s.inGame = true;
+        s.px = c.tx * TILE;
+        s.py = c.ty * TILE;
+
+        return session(P_ENTER, buildEnter(c, s), s);
+    }
+
+"""
+          if marker not in s:
+              raise SystemExit("FASTSTART_INSERT_MARKER_NOT_FOUND")
+          s = s.replace(marker, method + marker, 1)
+          p.write_text(s, encoding="utf-8")
+          print("FASTSTART 1026 handler injected.")
+          PY
+
       - name: Inject MCVL server debug logging
         working-directory: source/mcvl-android-source/mcvl-android
         run: |
