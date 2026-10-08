@@ -1,0 +1,12 @@
+{
+  "capture_id": "MCVL_SERVER_DEBUG_20261008_194923",
+  "timestamp_ms": 1791463777338,
+  "direction": "C2S",
+  "remote": "/127.0.0.1:39296",
+  "pid": 1026,
+  "session": false,
+  "frame_length": 35,
+  "raw_hex": "44344BFF0000001B010018040200023130000000005AFF005C009B0000023131000136",
+  "response_packets": 0,
+  "source_log": "MCVL_SERVER_DEBUG_20261008_194923.log.txt"
+}
