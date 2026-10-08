@@ -151,10 +151,69 @@ jobs:
           }
           EOF
 
+          cat > "$DEBUG_DIR/MCVLChunkInputStream.java" <<'EOF'
+          package com.mcvl.android;
+
+          import java.io.ByteArrayOutputStream;
+          import java.io.IOException;
+          import java.io.InputStream;
+
+          final class MCVLChunkInputStream extends InputStream {
+              private final InputStream delegate;
+              private final String remote;
+              private final ByteArrayOutputStream stream = new ByteArrayOutputStream();
+
+              MCVLChunkInputStream(InputStream delegate, String remote) {
+                  this.delegate = delegate;
+                  this.remote = remote;
+              }
+
+              @Override public int read() throws IOException {
+                  int b = delegate.read();
+                  if (b >= 0) {
+                      byte[] one = {(byte)b};
+                      record(one, 0, 1);
+                  }
+                  return b;
+              }
+
+              @Override public int read(byte[] b, int off, int len) throws IOException {
+                  int n = delegate.read(b, off, len);
+                  if (n > 0) record(b, off, n);
+                  return n;
+              }
+
+              private void record(byte[] b, int off, int len) {
+                  stream.write(b, off, len);
+                  byte[] chunk = new byte[len];
+                  System.arraycopy(b, off, chunk, 0, len);
+                  EmbeddedServerDebug.log("RX_CHUNK remote=" + remote + " bytes=" + len);
+                  EmbeddedServerDebug.log("RX_CHUNK_HEX remote=" + remote + " hex=" + EmbeddedServerDebug.hex(chunk));
+              }
+
+              void logStream() {
+                  byte[] all = stream.toByteArray();
+                  EmbeddedServerDebug.log("RX_STREAM remote=" + remote + " bytes=" + all.length);
+                  EmbeddedServerDebug.log("RX_STREAM_HEX remote=" + remote + " hex=" + EmbeddedServerDebug.hex(all));
+              }
+
+              @Override public void close() throws IOException {
+                  try { delegate.close(); } finally { logStream(); }
+              }
+
+              @Override public int available() throws IOException { return delegate.available(); }
+          }
+          EOF
+
           python3 - <<'PY'
           from pathlib import Path
           p = Path("app/src/main/java/com/mcvl/android/EmbeddedLocalServer.java")
           s = p.read_text(encoding="utf-8")
+          original_input = "socket.getInputStream()"
+          wrapped_input = "new MCVLChunkInputStream(socket.getInputStream(), String.valueOf(socket.getRemoteSocketAddress()))"
+          if original_input not in s:
+              raise SystemExit("PATCH_NOT_FOUND: socket.getInputStream()")
+          s = s.replace(original_input, wrapped_input, 1)
 
           patches = [
               ("public static synchronized void start(Context context) {",
