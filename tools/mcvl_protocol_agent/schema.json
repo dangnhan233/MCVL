@@ -1,0 +1,4 @@
+{
+  "version": 1,
+  "rules": {"confidence_threshold_for_verified": 0.8,"single_capture_cannot_verify_semantics": true,"hypotheses_must_include_evidence": true,"unknown_fields_must_not_be_guessed": true}
+}
