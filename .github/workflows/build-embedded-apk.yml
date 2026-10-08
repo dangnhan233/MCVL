@@ -239,16 +239,7 @@ jobs:
           s = s.replace(marker, inject, 1)
 
           marker = "    private PacketResult hVersion() throws IOException {"
-          inject = """    private PacketResult hFastStart(DataInputStream pk) throws IOException {
-        while (pk.available() > 0) pk.readUnsignedByte();
-        W w = new W();
-        w.utf("").utf("").utf(HOST + ":" + PORT);
-        w.utf("").utf("").utf("").utf("");
-        w.s8(1).s8(0).s16(51).s16(68);
-        return ok(P_FASTSTART, w.bytes());
-    }
-
-    private PacketResult hVersion() throws IOException {"""
+          inject = "    private PacketResult hFastStart(DataInputStream pk) throws IOException {\\n        while (pk.available() > 0) pk.readUnsignedByte();\\n        W w = new W();\\n        w.utf(\\"\\").utf(\\"\\").utf(HOST + \":\" + PORT);\\n        w.utf(\\"\\").utf(\\"\\").utf(\\"\\").utf(\\"\\");\\n        w.s8(1).s8(0).s16(51).s16(68);\\n        return ok(P_FASTSTART, w.bytes());\\n    }\\n\\n    private PacketResult hVersion() throws IOException {"
           if marker not in s:
               raise SystemExit("PATCH_NOT_FOUND: hVersion")
           s = s.replace(marker, inject, 1)
