@@ -176,6 +176,36 @@ jobs:
               if old not in s:
                   raise SystemExit("PATCH_NOT_FOUND: " + old.splitlines()[0])
               s = s.replace(old, new, 1)
+          # Restore the 1026 FASTSTART handler.
+          marker = "private static final int P_VERSION = 9950;"
+          inject = """private static final int P_VERSION = 9950;
+    private static final int P_FASTSTART = 1026;"""
+          if marker not in s:
+              raise SystemExit("PATCH_NOT_FOUND: P_VERSION constant")
+          s = s.replace(marker, inject, 1)
+
+          marker = "            case P_VERSION: return hVersion();"
+          inject = """            case P_VERSION: return hVersion();
+            case P_FASTSTART: return hFastStart(pk);"""
+          if marker not in s:
+              raise SystemExit("PATCH_NOT_FOUND: dispatch P_VERSION")
+          s = s.replace(marker, inject, 1)
+
+          marker = "    private PacketResult hVersion() throws IOException {"
+          inject = """    private PacketResult hFastStart(DataInputStream pk) throws IOException {
+        while (pk.available() > 0) pk.readUnsignedByte();
+        W w = new W();
+        w.utf("").utf("").utf(HOST + ":" + PORT);
+        w.utf("").utf("").utf("").utf("");
+        w.s8(1).s8(0).s16(51).s16(68);
+        return ok(P_FASTSTART, w.bytes());
+    }
+
+    private PacketResult hVersion() throws IOException {"""
+          if marker not in s:
+              raise SystemExit("PATCH_NOT_FOUND: hVersion")
+          s = s.replace(marker, inject, 1)
+
           p.write_text(s, encoding="utf-8")
           print("Debug instrumentation injected successfully.")
           PY
