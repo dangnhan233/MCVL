@@ -1,0 +1,31 @@
+name: MCVL Protocol Analyzer Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/mcvl_protocol_agent/**'
+      - '.github/workflows/mcvl-protocol-tests.yml'
+  pull_request:
+    paths:
+      - 'tools/mcvl_protocol_agent/**'
+      - '.github/workflows/mcvl-protocol-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  protocol-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile protocol analyzer
+        run: python -m compileall -q tools/mcvl_protocol_agent
+      - name: Run protocol analyzer unit tests
+        run: python -m unittest discover -s tools/mcvl_protocol_agent -t . -p 'test_phase*.py' -v
