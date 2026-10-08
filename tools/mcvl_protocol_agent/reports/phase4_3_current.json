@@ -1,0 +1,58 @@
+{
+  "total_observations": 4,
+  "pids": [
+    1011,
+    1026
+  ],
+  "per_pid": [
+    {
+      "pid": 1011,
+      "observations": 2,
+      "unique_frames": 1,
+      "unique_connections": 2,
+      "frame_lengths": [
+        25
+      ],
+      "structural_valid": true,
+      "length_rule_failures": 0,
+      "pid_rule_failures": 0,
+      "collection_status": "INSUFFICIENT",
+      "notes": [
+        "need 3 more observations to reach minimum",
+        "need 8 more observations to reach target",
+        "payload/frame diversity is currently low"
+      ]
+    },
+    {
+      "pid": 1026,
+      "observations": 2,
+      "unique_frames": 1,
+      "unique_connections": 2,
+      "frame_lengths": [
+        35
+      ],
+      "structural_valid": true,
+      "length_rule_failures": 0,
+      "pid_rule_failures": 0,
+      "collection_status": "INSUFFICIENT",
+      "notes": [
+        "need 3 more observations to reach minimum",
+        "need 8 more observations to reach target",
+        "payload/frame diversity is currently low"
+      ]
+    }
+  ],
+  "global_length_rule_valid": true,
+  "global_pid_rule_valid": true,
+  "multi_frame_stream_evidence": "UNRESOLVED",
+  "checksum_status": "UNKNOWN",
+  "payload_semantics_status": "UNKNOWN",
+  "ready_for_payload_analysis": false,
+  "notes": [
+    "Phase 4.3 evaluates evidence quantity and structural consistency only.",
+    "RX_CHUNK read boundaries are not TCP packet boundaries.",
+    "Checksum remains unknown until independently supported.",
+    "Payload semantics remain unknown until repeated evidence supports them.",
+    "Do not promote payload semantics or checksum from the current corpus."
+  ]
+}
