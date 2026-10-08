@@ -97,3 +97,23 @@ CLI:
 Current Phase 4.1 corpus has two observations per PID but only one unique frame per PID, so its expected result is `NO_VARIATION`. This is not evidence that the payload is constant in general; it only says the supplied captures are byte-identical within each PID.
 
 Checksum and payload semantics remain `UNKNOWN` regardless of the number of invariant offsets.
+
+## Phase 4.5 — Reconstructed stream analysis
+
+`phase45.py` reads explicit `RX_STREAM_HEX remote=... hex=...` records emitted when the wrapped input stream closes. It reconstructs frame boundaries with the Phase 4.2 length rule, reports valid and incomplete streams, and compares frame bytes against `RX_FRAME_HEX` observations in the same log.
+
+CLI:
+
+    python -m tools.mcvl_protocol_agent 'MCVL_SERVER_DEBUG_*.log.txt' --phase45
+
+The report includes per-stream byte length, frame offsets/lengths/PIDs, parse errors, and byte-exact matches between reconstructed stream frames and logged frames. It does not interpret `RX_CHUNK_HEX` read boundaries as network packet boundaries. Correlation is explicitly limited to byte equality; this phase does not claim request/response pairing, checksum semantics, or payload decoding.
+
+Regression tests:
+
+    python -m unittest tools.mcvl_protocol_agent.test_phase45
+
+Expected behavior:
+- concatenated frames are split into individual frames;
+- incomplete/truncated stream data is reported rather than silently discarded;
+- chunk-only logs do not produce reconstructed stream frames;
+- checksum and payload semantics remain `UNKNOWN`.
