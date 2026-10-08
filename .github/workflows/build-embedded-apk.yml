@@ -158,81 +158,36 @@ jobs:
           p = Path("app/src/main/java/com/mcvl/android/EmbeddedLocalServer.java")
           s = p.read_text(encoding="utf-8")
 
-          patches = [
-              (
-                  '''public static synchronized void start(Context context) {''',
-                  '''public static synchronized void start(Context context) {
-        EmbeddedServerDebug.init(context);
-        EmbeddedServerDebug.log("start() called");'''
-              ),
-              (
-                  '''serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName(HOST));''',
-                  '''serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName(HOST));
-            EmbeddedServerDebug.log("SERVER_STARTED port=" + PORT);'''
-              ),
-              (
-                  '''t.setDaemon(true);
-                t.start();''',
-                  '''t.setDaemon(true);
-                EmbeddedServerDebug.log("CLIENT_ACCEPT remote=" + socket.getRemoteSocketAddress());
-                t.start();'''
-              ),
-              (
-                  '''byte[] frame = readFrame(in);
-                if (frame == null) break;''',
-                  '''byte[] frame = readFrame(in);
-                if (frame == null) { EmbeddedServerDebug.log("CLIENT_EOF"); break; }
-                EmbeddedServerDebug.log("RX_FRAME bytes=" + frame.length);
-                EmbeddedServerDebug.log("RX_FRAME_HEX=" + EmbeddedServerDebug.hex(frame));'''
-              ),
-              (
-                  '''response = handleFrame(frame, socket);''',
-                  '''response = handleFrame(frame, socket);
-                    EmbeddedServerDebug.log("FRAME_HANDLED packets=" + response.packets.size() + " session=" + (response.session != null));'''
-              ),
-              (
-                  '''response = new PacketList();''',
-                  '''EmbeddedServerDebug.error("handleFrame", t);
-                    response = new PacketList();'''
-              ),
-              (
-                  '''int pid = pk.readUnsignedShort();''',
-                  '''int pid = pk.readUnsignedShort();
-            EmbeddedServerDebug.log("RX_PACKET pid=" + pid + " session=" + (sess != null));'''
-              ),
-              (
-                  '''private PacketResult doLogin(String acct, String pwd, Socket socket) throws IOException {''',
-                  '''private PacketResult doLogin(String acct, String pwd, Socket socket) throws IOException {
-        EmbeddedServerDebug.log("LOGIN acct=" + acct + " pwdLen=" + pwd.length());'''
-              ),
-              (
-                  '''return session(P_ACCOUNT, new W().utf(token).s8(0).bytes(), s);''',
-                  '''EmbeddedServerDebug.log("LOGIN_OK acct=" + acct + " sid=" + s.sid);
-        return session(P_ACCOUNT, new W().utf(token).s8(0).bytes(), s);'''
-              ),
-              (
-                  '''s.ch = ref.ch; s.inGame=true;''',
-                  '''s.ch = ref.ch; s.inGame=true;
-        EmbeddedServerDebug.log("ENTER_OK name=" + name + " pid=" + s.ch.pid + " tx=" + s.ch.tx + " ty=" + s.ch.ty);'''
-              ),
-              (
-                  '''int sub = pk.readByte();''',
-                  '''int sub = pk.readByte();
-        EmbeddedServerDebug.log("MOVE sub=" + sub + " session=" + (s != null));'''
-              ),
-              (
-                  '''private void writeResponse(DataOutputStream out, PacketList response) throws IOException {''',
-                  '''private void writeResponse(DataOutputStream out, PacketList response) throws IOException {
-        StringBuilder dbg = new StringBuilder("TX_RESPONSE packets=").append(response.packets.size());
-        for (Packet p : response.packets) dbg.append(" [").append(p.pid).append(p.error ? ":ERR" : "").append(",").append(p.data.length).append("]");
-        EmbeddedServerDebug.log(dbg.toString());'''
-              )
-          ]
-
-          for old, new in patches:
+          def patch(old, new):
+              global s
               if old not in s:
                   raise SystemExit("PATCH_NOT_FOUND: " + old.splitlines()[0])
               s = s.replace(old, new, 1)
+
+          patch("public static synchronized void start(Context context) {",
+                "public static synchronized void start(Context context) {\n        EmbeddedServerDebug.init(context);\n        EmbeddedServerDebug.log(\"start() called\");")
+          patch("serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName(HOST));",
+                "serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName(HOST));\n            EmbeddedServerDebug.log(\"SERVER_STARTED port=\" + PORT);")
+          patch("t.setDaemon(true);\n                t.start();",
+                "t.setDaemon(true);\n                EmbeddedServerDebug.log(\"CLIENT_ACCEPT remote=\" + socket.getRemoteSocketAddress());\n                t.start();")
+          patch("byte[] frame = readFrame(in);\n                if (frame == null) break;",
+                "byte[] frame = readFrame(in);\n                if (frame == null) { EmbeddedServerDebug.log(\"CLIENT_EOF\"); break; }\n                EmbeddedServerDebug.log(\"RX_FRAME bytes=\" + frame.length);\n                EmbeddedServerDebug.log(\"RX_FRAME_HEX=\" + EmbeddedServerDebug.hex(frame));")
+          patch("response = handleFrame(frame, socket);",
+                "response = handleFrame(frame, socket);\n                    EmbeddedServerDebug.log(\"FRAME_HANDLED packets=\" + response.packets.size() + \" session=\" + (response.session != null));")
+          patch("response = new PacketList();",
+                "EmbeddedServerDebug.error(\"handleFrame\", t);\n                    response = new PacketList();")
+          patch("int pid = pk.readUnsignedShort();",
+                "int pid = pk.readUnsignedShort();\n            EmbeddedServerDebug.log(\"RX_PACKET pid=\" + pid + \" session=\" + (sess != null));")
+          patch("private PacketResult doLogin(String acct, String pwd, Socket socket) throws IOException {",
+                "private PacketResult doLogin(String acct, String pwd, Socket socket) throws IOException {\n        EmbeddedServerDebug.log(\"LOGIN acct=\" + acct + \" pwdLen=\" + pwd.length());")
+          patch("return session(P_ACCOUNT, new W().utf(token).s8(0).bytes(), s);",
+                "EmbeddedServerDebug.log(\"LOGIN_OK acct=\" + acct + \" sid=\" + s.sid);\n        return session(P_ACCOUNT, new W().utf(token).s8(0).bytes(), s);")
+          patch("s.ch = ref.ch; s.inGame=true;",
+                "s.ch = ref.ch; s.inGame=true;\n        EmbeddedServerDebug.log(\"ENTER_OK name=\" + name + \" pid=\" + s.ch.pid + \" tx=\" + s.ch.tx + \" ty=\" + s.ch.ty);")
+          patch("int sub = pk.readByte();",
+                "int sub = pk.readByte();\n        EmbeddedServerDebug.log(\"MOVE sub=\" + sub + \" session=\" + (s != null));")
+          patch("private void writeResponse(DataOutputStream out, PacketList response) throws IOException {",
+                "private void writeResponse(DataOutputStream out, PacketList response) throws IOException {\n        StringBuilder dbg = new StringBuilder(\"TX_RESPONSE packets=\").append(response.packets.size());\n        for (Packet p : response.packets) dbg.append(\" [\").append(p.pid).append(p.error ? \":ERR\" : \"\").append(\",\").append(p.data.length).append(\"]\");\n        EmbeddedServerDebug.log(dbg.toString());")
 
           p.write_text(s, encoding="utf-8")
           print("Embedded server debug instrumentation injected successfully.")
