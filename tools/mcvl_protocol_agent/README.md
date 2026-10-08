@@ -64,3 +64,24 @@ Test suite:
     python -m unittest tools.mcvl_protocol_agent.test_phase41 tools.mcvl_protocol_agent.test_phase42
 
 The current Phase 4.1 evidence yields frame lengths `35, 25, 35, 25` and PID sequence `1026, 1011, 1026, 1011` when the four observations are concatenated.
+
+## Phase 4.3 — Evidence expansion and regression gate
+
+`phase43.py` evaluates the current corpus without inventing protocol semantics.
+
+Default collection gates:
+
+- minimum: 5 observations per PID;
+- target: 10 observations per PID;
+- structural length rule must hold for every capture;
+- structural PID rule must hold for every capture;
+- frame diversity and connection diversity are reported separately;
+- multi-frame stream evidence remains `UNRESOLVED` until directly observed from reconstructed streams;
+- checksum remains `UNKNOWN`;
+- payload semantics remain `UNKNOWN`.
+
+CLI:
+
+    python -m tools.mcvl_protocol_agent 'MCVL_SERVER_DEBUG_*.log.txt' --phase43
+
+The report distinguishes `INSUFFICIENT`, `MINIMUM_REACHED`, and `TARGET_REACHED`. Reaching a count threshold does not by itself establish payload semantics or a checksum algorithm.
