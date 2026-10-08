@@ -151,100 +151,33 @@ jobs:
           }
           EOF
 
-          # Triggered rebuild after handshake debug instrumentation fix
           python3 - <<'PY'
           from pathlib import Path
-
           p = Path("app/src/main/java/com/mcvl/android/EmbeddedLocalServer.java")
           s = p.read_text(encoding="utf-8")
 
-          def patch(old, new):
-              global s
+          patches = [
+              ("public static synchronized void start(Context context) {",
+               "public static synchronized void start(Context context) {\n        EmbeddedServerDebug.init(context);\n        EmbeddedServerDebug.log(\"start() called\");"),
+              ("serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName(HOST));",
+               "serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName(HOST));\n            EmbeddedServerDebug.log(\"SERVER_STARTED port=\" + PORT);"),
+              ("t.setDaemon(true);\n                t.start();",
+               "t.setDaemon(true);\n                EmbeddedServerDebug.log(\"CLIENT_ACCEPT remote=\" + socket.getRemoteSocketAddress());\n                t.start();"),
+              ("byte[] frame = readFrame(in);\n                if (frame == null) break;",
+               "byte[] frame = readFrame(in);\n                if (frame == null) { EmbeddedServerDebug.log(\"CLIENT_EOF\"); break; }\n                EmbeddedServerDebug.log(\"RX_FRAME bytes=\" + frame.length);\n                EmbeddedServerDebug.log(\"RX_FRAME_HEX=\" + EmbeddedServerDebug.hex(frame));"),
+              ("response = handleFrame(frame, socket);",
+               "response = handleFrame(frame, socket);\n                    EmbeddedServerDebug.log(\"FRAME_HANDLED packets=\" + response.packets.size() + \" session=\" + (response.session != null));"),
+              ("int pid = pk.readUnsignedShort();",
+               "int pid = pk.readUnsignedShort();\n            EmbeddedServerDebug.log(\"RX_PACKET pid=\" + pid + \" session=\" + (sess != null));"),
+              ("private void writeResponse(DataOutputStream out, PacketList response) throws IOException {",
+               "private void writeResponse(DataOutputStream out, PacketList response) throws IOException {\n        StringBuilder dbg = new StringBuilder(\"TX_RESPONSE packets=\").append(response.packets.size());\n        for (Packet p : response.packets) dbg.append(\" [\").append(p.pid).append(p.error ? \":ERR\" : \"\").append(\",\").append(p.data.length).append(\"]\");\n        EmbeddedServerDebug.log(dbg.toString());"),
+          ]
+          for old, new in patches:
               if old not in s:
                   raise SystemExit("PATCH_NOT_FOUND: " + old.splitlines()[0])
               s = s.replace(old, new, 1)
-
-          patch(
-              "private static final int P_DELETE = 1024;",
-              "private static final int P_DELETE = 1024;\n    private static final int P_FASTSTART = 1026;"
-          )
-          patch(
-              'case P_DELETE: return error(P_DELETE, 1, "Server local chưa hỗ trợ xoá nhân vật.");',
-              'case P_DELETE: return error(P_DELETE, 1, "Server local chưa hỗ trợ xoá nhân vật.");\n            case P_FASTSTART: return hFastStart(pk, sess, local);'
-          )
-          marker = "    private PacketResult hRegister(DataInputStream pk) throws IOException {"
-          method = (
-              "    private PacketResult hFastStart(DataInputStream pk, Session s, Socket socket) throws IOException {\n"
-              "        String acct = readUtf(pk).trim();\n"
-              "        while (pk.available() >= 1) pk.readByte();\n"
-              "        if (acct.length() == 0) acct = \"local\";\n"
-              "        Account a = store.account(acct);\n"
-              "        if (a == null) { a = new Account(); a.pwd = \"\"; a.chars = new CharData[2]; store.accounts.put(acct, a); }\n"
-              "        if (s == null) {\n"
-              "            String token = \"fast_\" + Long.toHexString(RNG.nextLong()) + Long.toHexString(RNG.nextLong());\n"
-              "            s = new Session(token, acct, socket); sessions.put(token, s); bySid.put(s.sid, s);\n"
-              "        }\n"
-              "        CharData c = a.chars[0];\n"
-              "        if (c == null) { c = new CharData(); c.name = acct; c.pid = store.nextPid++; c.tx = SPAWN_TX; c.ty = SPAWN_TY; a.chars[0] = c; store.save(); }\n"
-              "        s.ch = c; s.inGame = true; s.px = c.tx * TILE; s.py = c.ty * TILE;\n"
-              "        return session(P_ENTER, buildEnter(c, s), s);\n"
-              "    }\n\n"
-          )
-          if marker not in s:
-              raise SystemExit("FASTSTART_INSERT_MARKER_NOT_FOUND")
-          s = s.replace(marker, method + marker, 1)
-
-          def patch(old, new):
-              global s
-              if old not in s:
-                  raise SystemExit("PATCH_NOT_FOUND: " + old.splitlines()[0])
-              s = s.replace(old, new, 1)
-
-          patch("public static synchronized void start(Context context) {",
-                "public static synchronized void start(Context context) {\n        EmbeddedServerDebug.init(context);\n        EmbeddedServerDebug.log(\"start() called\");")
-          patch("serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName(HOST));",
-                "serverSocket = new ServerSocket(PORT, 32, InetAddress.getByName(HOST));\n            EmbeddedServerDebug.log(\"SERVER_STARTED port=\" + PORT);")
-          patch("t.setDaemon(true);\n                t.start();",
-                "t.setDaemon(true);\n                EmbeddedServerDebug.log(\"CLIENT_ACCEPT remote=\" + socket.getRemoteSocketAddress());\n                t.start();")
-          patch("byte[] frame = readFrame(in);\n                if (frame == null) break;",
-                "byte[] frame = readFrame(in);\n                if (frame == null) { EmbeddedServerDebug.log(\"CLIENT_EOF\"); break; }\n                EmbeddedServerDebug.log(\"RX_FRAME bytes=\" + frame.length);\n                EmbeddedServerDebug.log(\"RX_FRAME_HEX=\" + EmbeddedServerDebug.hex(frame));")
-          patch("response = handleFrame(frame, socket);",
-                "response = handleFrame(frame, socket);\n                    EmbeddedServerDebug.log(\"FRAME_HANDLED packets=\" + response.packets.size() + \" session=\" + (response.session != null));")
-          patch("response = new PacketList();",
-                "EmbeddedServerDebug.error(\"handleFrame\", t);\n                    response = new PacketList();")
-          patch("int pid = pk.readUnsignedShort();",
-                "int pid = pk.readUnsignedShort();\n            EmbeddedServerDebug.log(\"RX_PACKET pid=\" + pid + \" session=\" + (sess != null));")
-          patch("private PacketResult doLogin(String acct, String pwd, Socket socket) throws IOException {",
-                "private PacketResult doLogin(String acct, String pwd, Socket socket) throws IOException {\n        EmbeddedServerDebug.log(\"LOGIN acct=\" + acct + \" pwdLen=\" + pwd.length());")
-          patch("return session(P_ACCOUNT, new W().utf(token).s8(0).bytes(), s);",
-                "EmbeddedServerDebug.log(\"LOGIN_OK acct=\" + acct + \" sid=\" + s.sid);\n        return session(P_ACCOUNT, new W().utf(token).s8(0).bytes(), s);")
-          patch("s.ch = ref.ch; s.inGame=true;",
-                "s.ch = ref.ch; s.inGame=true;\n        EmbeddedServerDebug.log(\"ENTER_OK name=\" + name + \" pid=\" + s.ch.pid + \" tx=\" + s.ch.tx + \" ty=\" + s.ch.ty);")
-          patch("int sub = pk.readByte();",
-                "int sub = pk.readByte();\n        EmbeddedServerDebug.log(\"MOVE sub=\" + sub + \" session=\" + (s != null));")
-          patch("private void writeResponse(DataOutputStream out, PacketList response) throws IOException {",
-                "private void writeResponse(DataOutputStream out, PacketList response) throws IOException {\n        StringBuilder dbg = new StringBuilder(\"TX_RESPONSE packets=\").append(response.packets.size());\n        for (Packet p : response.packets) dbg.append(\" [\").append(p.pid).append(p.error ? \":ERR\" : \"\").append(\",\").append(p.data.length).append(\"]\");\n        EmbeddedServerDebug.log(dbg.toString());")
-
-          # Add the missing 1026 FASTSTART response.
-          marker = "private static final int P_VERSION = 9950;"
-          inject = "private static final int P_VERSION = 9950;\\n    private static final int P_FASTSTART = 1026;"
-          if marker not in s:
-              raise SystemExit("PATCH_NOT_FOUND: P_VERSION constant")
-          s = s.replace(marker, inject, 1)
-
-          marker = "            case P_VERSION: return hVersion();"
-          inject = "            case P_VERSION: return hVersion();\\n            case P_FASTSTART: return hFastStart(pk);"
-          if marker not in s:
-              raise SystemExit("PATCH_NOT_FOUND: dispatch P_VERSION")
-          s = s.replace(marker, inject, 1)
-
-          marker = "    private PacketResult hVersion() throws IOException {"
-          inject = '    private PacketResult hFastStart(DataInputStream pk) throws IOException {\n        while (pk.available() > 0) pk.readUnsignedByte();\n        W w = new W();\n        w.utf("").utf("").utf(HOST + ":" + PORT);\n        w.utf("").utf("").utf("").utf("");\n        w.s8(1).s8(0).s16(51).s16(68);\n        return ok(P_FASTSTART, w.bytes());\n    }\n\n    private PacketResult hVersion() throws IOException {'          if marker not in s:
-              raise SystemExit("PATCH_NOT_FOUND: hVersion")
-          s = s.replace(marker, inject, 1)
-
           p.write_text(s, encoding="utf-8")
-          print("Embedded server debug instrumentation and FASTSTART handler injected successfully.")
+          print("Debug instrumentation injected successfully.")
           PY
 
       - name: Build APK
