@@ -1,0 +1,8 @@
+{
+  "pid": 1026,
+  "status": "unresolved",
+  "verified": false,
+  "fields": [],
+  "response": {"known": false, "packets": 0},
+  "notes": ["Do not infer semantics from a single capture.","The 4-byte prefix 44 34 4B FF is observed, not semantically decoded."]
+}
