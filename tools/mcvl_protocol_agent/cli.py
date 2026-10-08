@@ -11,6 +11,7 @@ def main():
     p.add_argument('--pid',type=int,help='show summary for one PID')
     p.add_argument('--phase43',action='store_true',help='print Phase 4.3 corpus evidence report')
     p.add_argument('--phase44',action='store_true',help='print Phase 4.4 differential byte report')
+    p.add_argument('--phase45',action='store_true',help='analyze RX_STREAM_HEX reconstruction and compare with logged frames')
     p.add_argument('--min-observations',type=int,default=5)
     p.add_argument('--target-observations',type=int,default=10)
     a=p.parse_args()
@@ -29,5 +30,8 @@ def main():
     if a.phase44:
         from .phase44 import differential_report
         print(json.dumps(differential_report(captures),indent=2,sort_keys=True))
+    if a.phase45:
+        from .phase45 import analyze_stream_logs
+        print(json.dumps(analyze_stream_logs(paths),indent=2,sort_keys=True))
 
 if __name__=='__main__': main()
