@@ -10,6 +10,7 @@ def main():
     p.add_argument('-o','--output',default='mcvl_captures.json')
     p.add_argument('--pid',type=int,help='show summary for one PID')
     p.add_argument('--phase43',action='store_true',help='print Phase 4.3 corpus evidence report')
+    p.add_argument('--phase44',action='store_true',help='print Phase 4.4 differential byte report')
     p.add_argument('--min-observations',type=int,default=5)
     p.add_argument('--target-observations',type=int,default=10)
     a=p.parse_args()
@@ -25,5 +26,8 @@ def main():
     for pid in ([a.pid] if a.pid is not None else pids): print(json.dumps(store.summary(pid),sort_keys=True))
     if a.phase43:
         print(json.dumps(store.phase43(a.min_observations,a.target_observations),indent=2,sort_keys=True))
+    if a.phase44:
+        from .phase44 import differential_report
+        print(json.dumps(differential_report(captures),indent=2,sort_keys=True))
 
 if __name__=='__main__': main()
