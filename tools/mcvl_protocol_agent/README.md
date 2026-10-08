@@ -117,3 +117,17 @@ Expected behavior:
 - incomplete/truncated stream data is reported rather than silently discarded;
 - chunk-only logs do not produce reconstructed stream frames;
 - checksum and payload semantics remain `UNKNOWN`.
+
+## Phase 4.6 — Response payload analysis
+
+`phase46.py` extracts `RX_FRAME_HEX`, logged request PID/session state, and `TX_PACKET` response payloads. It attempts UTF-8 decoding while retaining the original hex and any decode error. It reports PID overlap between requests and responses, but PID/timestamp proximity is not treated as proof of transaction pairing.
+
+CLI:
+
+    python -m tools.mcvl_protocol_agent 'MCVL_SERVER_DEBUG_*.log.txt' --phase46
+
+The analyzer reports payload bytes and text where decodable; it does not assume every payload is text and does not decode the full response frame envelope. Session semantics, checksums, and payload field meanings remain unknown.
+
+Regression tests:
+
+    python -m unittest tools.mcvl_protocol_agent.test_phase46
