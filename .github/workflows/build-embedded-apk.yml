@@ -225,35 +225,22 @@ jobs:
           patch("private void writeResponse(DataOutputStream out, PacketList response) throws IOException {",
                 "private void writeResponse(DataOutputStream out, PacketList response) throws IOException {\n        StringBuilder dbg = new StringBuilder(\"TX_RESPONSE packets=\").append(response.packets.size());\n        for (Packet p : response.packets) dbg.append(\" [\").append(p.pid).append(p.error ? \":ERR\" : \"\").append(\",\").append(p.data.length).append(\"]\");\n        EmbeddedServerDebug.log(dbg.toString());")
 
-          # Add the missing 1026 FASTSTART response. The stock client parses this packet
-          # as seven UTF strings followed by 2 bytes and 2 shorts, then starts its normal loop.
+          # Add the missing 1026 FASTSTART response.
           marker = "private static final int P_VERSION = 9950;"
-          inject = """private static final int P_VERSION = 9950;
-    private static final int P_FASTSTART = 1026;"""
+          inject = "private static final int P_VERSION = 9950;\\n    private static final int P_FASTSTART = 1026;"
           if marker not in s:
               raise SystemExit("PATCH_NOT_FOUND: P_VERSION constant")
           s = s.replace(marker, inject, 1)
 
           marker = "            case P_VERSION: return hVersion();"
-          inject = """            case P_VERSION: return hVersion();
-            case P_FASTSTART: return hFastStart(pk);"""
+          inject = "            case P_VERSION: return hVersion();\\n            case P_FASTSTART: return hFastStart(pk);"
           if marker not in s:
               raise SystemExit("PATCH_NOT_FOUND: dispatch P_VERSION")
           s = s.replace(marker, inject, 1)
 
           marker = "    private PacketResult hVersion() throws IOException {"
           inject = """    private PacketResult hFastStart(DataInputStream pk) throws IOException {
-        // Request fields: utf("10"), byte 4, byte 2, int 90, int 0xFF005C00,
-        // byte 0x9B, utf("11"), utf("6"). They are accepted as a valid FASTSTART request.
-        while (pk.available() > 0) {
-            // Consume without depending on optional client-side extensions.
-            if (pk.available() >= 2) {
-                pk.readUnsignedByte();
-                pk.readUnsignedByte();
-            } else {
-                pk.readUnsignedByte();
-            }
-        }
+        while (pk.available() > 0) pk.readUnsignedByte();
         W w = new W();
         w.utf("").utf("").utf(HOST + ":" + PORT);
         w.utf("").utf("").utf("").utf("");
