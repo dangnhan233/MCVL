@@ -11,6 +11,7 @@ class PacketCapture:
     session: bool
     raw_hex: str
     response_packets: int = 0
+    source_log: str = ""
     @property
     def raw(self) -> bytes:
         return bytes.fromhex(self.raw_hex)
