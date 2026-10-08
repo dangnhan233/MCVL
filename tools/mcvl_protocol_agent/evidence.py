@@ -15,6 +15,10 @@ class EvidenceStore:
         xs=self.for_pid(pid)
         return {"pid":pid,"capture_count":len(xs),"directions":sorted({x.direction for x in xs}),"frame_lengths":sorted({len(x.raw) for x in xs}),"responses":sum(x.response_packets for x in xs),"unique_frames":len({x.raw_hex for x in xs})}
 
+    def phase43(self, min_observations: int = 5, target_observations: int = 10):
+        from .phase43 import analyze_corpus, report_to_dict
+        return report_to_dict(analyze_corpus(self.captures, min_observations, target_observations))
+
     def phase41(self, pid: int | None = None):
         from .phase41 import analyze_phase41
         xs = self.captures if pid is None else self.for_pid(pid)
