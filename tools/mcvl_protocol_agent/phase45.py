@@ -4,7 +4,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .ingest import ingest_log
 from .phase42 import split_stream
 
 STREAM_RE = re.compile(r"^(\\d+) RX_STREAM_HEX remote=(.*?) hex=([0-9A-Fa-f]*)\\s*$")
