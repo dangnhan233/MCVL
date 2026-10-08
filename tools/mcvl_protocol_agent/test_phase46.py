@@ -31,7 +31,7 @@ class Phase46Test(unittest.TestCase):
         self.assertEqual(report["pid_overlap"], [1011, 1026])
         self.assertFalse(report["responses"][0]["error"])
         self.assertTrue(report["responses"][1]["error"])
-        self.assertEqual(report["responses"][1]["utf8_text"], "Phiên hệt hãy")
+        self.assertEqual(report["responses"][1]["utf8_text"], "Phiên hết hạn")
 
     def test_invalid_utf8_is_reported_without_crashing(self):
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".log", delete=False) as tmp:
