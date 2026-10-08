@@ -229,7 +229,7 @@ jobs:
               ("int pid = pk.readUnsignedShort();",
                "int pid = pk.readUnsignedShort();\n            EmbeddedServerDebug.log(\"RX_PACKET pid=\" + pid + \" session=\" + (sess != null));"),
               ("private void writeResponse(DataOutputStream out, PacketList response) throws IOException {",
-               "private void writeResponse(DataOutputStream out, PacketList response) throws IOException {\n        StringBuilder dbg = new StringBuilder(\"TX_RESPONSE packets=\").append(response.packets.size());\n        for (Packet p : response.packets) dbg.append(\" [\").append(p.pid).append(p.error ? \":ERR\" : \"\").append(\",\").append(p.data.length).append(\"]\");\n        EmbeddedServerDebug.log(dbg.toString());"),
+               "private void writeResponse(DataOutputStream out, PacketList response) throws IOException {\n        StringBuilder dbg = new StringBuilder(\"TX_RESPONSE packets=\").append(response.packets.size());\n        for (Packet p : response.packets) { dbg.append(\" [\").append(p.pid).append(p.error ? \":ERR\" : \"\").append(\",\").append(p.data.length).append(\"]\"); EmbeddedServerDebug.log(\"TX_PACKET pid=\" + p.pid + \" error=\" + p.error + \" data_hex=\" + EmbeddedServerDebug.hex(p.data)); }\n        EmbeddedServerDebug.log(dbg.toString());"),
           ]
           for old, new in patches:
               if old not in s:
