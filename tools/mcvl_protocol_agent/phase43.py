@@ -96,7 +96,7 @@ def analyze_corpus(
     ready = (
         bool(reports)
         and all(r.observations >= min_observations_per_pid for r in reports)
-        and all(r.structural_valid for r in reports)
+        and all(r.structural_valid and r.unique_frames >= 2 for r in reports)
         and all_length_ok
         and all_pid_ok
     )
@@ -107,6 +107,8 @@ def analyze_corpus(
         "Checksum remains unknown until an independently supported algorithm is demonstrated.",
         "Payload semantics remain unknown until supported by repeated evidence.",
     ]
+    if any(r.unique_frames < 2 for r in reports):
+        notes.append("At least one PID has fewer than 2 unique frames; differential payload analysis is not yet informative.")
     if not ready:
         notes.append("Do not promote payload semantics or checksum from the current corpus.")
 
