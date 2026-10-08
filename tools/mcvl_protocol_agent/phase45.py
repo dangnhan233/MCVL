@@ -6,8 +6,8 @@ from typing import Any
 
 from .phase42 import split_stream
 
-STREAM_RE = re.compile(r"^(\d+ RX_STREAM_HEX remote=(.*?) hex=([0-9A-Fa-f]*)\s*$")
-FRAME_RE = re.compile(r"^(\\d+) RX_FRAME_HEX=([0-9A-Fa-f]+)\\s*$")
+STREAM_RE = re.compile(r"^(\d+) RX_STREAM_HEX remote=(.*?) hex=([0-9A-Fa-f]*)\s*$")
+FRAME_RE = re.compile(r"^(\d+) RX_FRAME_HEX=([0-9A-Fa-f]+)\s*$")
 
 
 def analyze_stream_log(path: str | Path) -> dict[str, Any]:
