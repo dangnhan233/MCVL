@@ -235,6 +235,16 @@ jobs:
               if old not in s:
                   raise SystemExit("PATCH_NOT_FOUND: " + old.splitlines()[0])
               s = s.replace(old, new, 1)
+          # PID 2001 map payload uses DataInputStream.readUTF() on the client.
+          # DataOutputStream.writeUTF() is the matching modified-UTF encoder; raw UTF-8
+          # shifts every field after a non-ASCII map name and leaves the client on loading.
+          old_utf = 'W utf(String s)throws IOException{byte[]d=s.getBytes(StandardCharsets.UTF_8);o.writeShort(d.length);o.write(d);return this;}'
+          new_utf = 'W utf(String s)throws IOException{o.writeUTF(s);return this;}'
+          if old_utf not in s:
+              raise SystemExit("PATCH_NOT_FOUND: W.utf UTF-8 serializer")
+          s = s.replace(old_utf, new_utf, 1)
+          print("PATCH_APPLIED: W.utf now matches DataInputStream.readUTF")
+
           # Restore the 1026 FASTSTART handler.
           marker = "private static final int P_VERSION = 9950;"
           inject = "\n".join([
