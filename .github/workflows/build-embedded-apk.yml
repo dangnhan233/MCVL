@@ -245,6 +245,17 @@ jobs:
           s = s.replace(old_utf, new_utf, 1)
           print("PATCH_APPLIED: W.utf now matches DataInputStream.readUTF")
 
+          # Align PID 2001 map trailer with f.h(DataInputStream):
+          # after the z-count, the client reads one flag byte, a short tile index,
+          # then a modified-UTF string. The old serializer wrote an extra short,
+          # making the spawn tile index (2444) look like a UTF byte length.
+          old_tail = 'w.s16(0).s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");'
+          new_tail = 'w.s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");'
+          if old_tail not in s:
+              raise SystemExit("PATCH_NOT_FOUND: PID 2001 map trailer alignment")
+          s = s.replace(old_tail, new_tail, 1)
+          print("PATCH_APPLIED: removed extra short before PID 2001 trailer flag")
+
           # Restore the 1026 FASTSTART handler.
           marker = "private static final int P_VERSION = 9950;"
           inject = "\n".join([
