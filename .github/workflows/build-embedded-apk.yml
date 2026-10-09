@@ -318,7 +318,7 @@ jobs:
           for x in range(2, w-2):
               for y in (h-8, h-7): tiles[y*w+x] = 51 + (x % 3)
           tile_method = "    private static int[] buildMapTiles() { return new int[]{" + ",".join(map(str, tiles)) + "}; }"
-          s, tile_count = re.subn(r"    private static int\\[\\] buildMapTiles\\(\\)\\s*\\{.*?\\n    \\}", tile_method, s, count=1, flags=re.S)
+          s, tile_count = re.subn(r"    private static int\[\] buildMapTiles\(\)\s*\{.*?\n    \}", tile_method, s, count=1, flags=re.S)
           if tile_count != 1:
               raise SystemExit("PATCH_NOT_FOUND: buildMapTiles")
 
