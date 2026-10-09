@@ -358,6 +358,17 @@ jobs:
               raise SystemExit("PATCH_NOT_FOUND: empty response framing")
           s = s.replace(old_empty, new_empty, 1)
 
+          # PID 2001 map parser f.h() reads one byte (c(in) mode), then
+          # a short spawn index, then a UTF string. The old serializer had
+          # one extra short before the mode byte, shifting the spawn index
+          # into readUTF length and causing EOF while the client loads map.
+          old_tail = 'w.s16(0).s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");'
+          new_tail = 'w.s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");'
+          if old_tail not in s:
+              raise SystemExit("PATCH_NOT_FOUND: PID 2001 map tail alignment")
+          s = s.replace(old_tail, new_tail, 1)
+          print("PATCH_APPLIED: PID 2001 map tail aligned to f.h() parser")
+
           p.write_text(s, encoding="utf-8")
           print("Debug instrumentation injected successfully.")
           PY
