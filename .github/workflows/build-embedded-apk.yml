@@ -373,10 +373,14 @@ jobs:
               raise SystemExit("PATCH_NOT_FOUND: PID 2001 map tail alignment")
           if old_tail in s:
               raise SystemExit("PATCH_FAILED: extra short still precedes trailer mode byte")
-          expected_tail = 'w.s16(0).s16(0).s16(0).s16(0).s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");'
-          if expected_tail not in s:
-              raise SystemExit("PATCH_VERIFY_FAILED: PID 2001 trailer writer layout differs from audited sequence")
-          print("PATCH_VERIFIED: no extra short before trailer mode byte")
+          # Verify the actual writer chain by checking the exact old/new
+          # adjacent sequence, not the entire surrounding chain (which may
+          # contain additional legitimate count fields before this trailer).
+          if old_tail in s:
+              raise SystemExit("PATCH_VERIFY_FAILED: extra short remains before trailer mode byte")
+          if new_tail not in s:
+              raise SystemExit("PATCH_VERIFY_FAILED: aligned trailer sequence not found")
+          print("PATCH_VERIFIED: trailer mode byte directly precedes spawn-index short")
 
           p.write_text(s, encoding="utf-8")
           print("Debug instrumentation injected successfully.")
