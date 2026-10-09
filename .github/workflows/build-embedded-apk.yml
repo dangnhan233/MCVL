@@ -329,6 +329,14 @@ jobs:
               raise SystemExit("PATCH_NOT_FOUND: hMove subcommand")
           s = s.replace(move_marker, move_replacement, 1)
 
+          # Match V11 encode_response(): an empty packet list has a zero-length
+          # payload, not a two-byte packet-count field containing 0.
+          old_empty = "        body.writeShort(response.packets.size());"
+          new_empty = "        if (!response.packets.isEmpty()) body.writeShort(response.packets.size());"
+          if old_empty not in s:
+              raise SystemExit("PATCH_NOT_FOUND: empty response framing")
+          s = s.replace(old_empty, new_empty, 1)
+
           p.write_text(s, encoding="utf-8")
           print("Debug instrumentation injected successfully.")
           PY
