@@ -248,7 +248,7 @@ jobs:
           marker = "            case P_VERSION: return hVersion();"
           inject = "\n".join([
               "            case P_VERSION: return hVersion();",
-              "            case P_FASTSTART: return hFastStart(pk);"
+              "            case P_FASTSTART: return hFastStart(pk, local);"
           ])
           if marker not in s:
               raise SystemExit("PATCH_NOT_FOUND: dispatch P_VERSION")
@@ -256,13 +256,30 @@ jobs:
 
           marker = "    private PacketResult hVersion() throws IOException {"
           inject = "\n".join([
-              "    private PacketResult hFastStart(DataInputStream pk) throws IOException {",
-              "        while (pk.available() > 0) pk.readUnsignedByte();",
-              "        W w = new W();",
-              "        w.utf(\"\").utf(\"\").utf(HOST + \":\" + PORT);",
-              "        w.utf(\"\").utf(\"\").utf(\"\").utf(\"\");",
-              "        w.s8(1).s8(0).s16(51).s16(68);",
-              "        return ok(P_FASTSTART, w.bytes());",
+              "    private PacketResult hFastStart(DataInputStream pk, Socket local) throws IOException {",
+              "        String requestedName = readUtf(pk);",
+              "        int gender = pk.readByte();",
+              "        int cls = pk.readByte();",
+              "        int c1 = pk.readInt();",
+              "        int c2 = pk.readInt();",
+              "        int style = pk.readByte();",
+              "        int id = store.nextPid++;",
+              "        String acct = \"guest\" + id;",
+              "        String pwd = \"local\";",
+              "        Account a = new Account(); a.pwd = pwd; a.chars = new CharData[2];",
+              "        CharData ch = new CharData();",
+              "        ch.name = \"Khach\" + id; ch.cls = cls; ch.gender = gender;",
+              "        ch.c1 = c1; ch.c2 = c2; ch.style = style; ch.pid = id;",
+              "        ch.level = 1; ch.gold = 1000; ch.exp = 0; ch.map = 0; ch.tx = SPAWN_TX; ch.ty = SPAWN_TY;",
+              "        a.chars[0] = ch; store.accounts.put(acct, a); store.save();",
+              "        String token = \"s_\" + Long.toHexString(RNG.nextLong()) + Long.toHexString(RNG.nextLong());",
+              "        Session session = new Session(token, acct, local);",
+              "        sessions.put(token, session); bySid.put(session.sid, session);",
+              "        W w = new W().utf(ch.name).utf(token).utf(HOST + \":\" + PORT).utf(\"Chào mừng!\").utf(\"Local Server\").utf(acct).utf(pwd);",
+              "        w.s8(0).s16(51).s16(68);",
+              "        PacketResult result = ok(P_FASTSTART, w.bytes()); result.session = session;",
+              "        EmbeddedServerDebug.log(\"FASTSTART_SESSION_CREATED account=\" + acct + \" token_len=\" + token.length() + \" sid=\" + session.sid);",
+              "        return result;",
               "    }",
               "",
               "    private PacketResult hVersion() throws IOException {"
