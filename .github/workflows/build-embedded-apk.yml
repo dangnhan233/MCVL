@@ -364,10 +364,19 @@ jobs:
           # into readUTF length and causing EOF while the client loads map.
           old_tail = 'w.s16(0).s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");'
           new_tail = 'w.s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");'
-          if old_tail not in s:
+          if old_tail in s:
+              s = s.replace(old_tail, new_tail, 1)
+              print("PATCH_APPLIED: PID 2001 map tail aligned to f.h() parser")
+          elif new_tail in s:
+              print("PATCH_ALREADY_APPLIED: PID 2001 map tail already aligned")
+          else:
               raise SystemExit("PATCH_NOT_FOUND: PID 2001 map tail alignment")
-          s = s.replace(old_tail, new_tail, 1)
-          print("PATCH_APPLIED: PID 2001 map tail aligned to f.h() parser")
+          if old_tail in s:
+              raise SystemExit("PATCH_FAILED: extra short still precedes trailer mode byte")
+          expected_tail = 'w.s16(0).s16(0).s16(0).s16(0).s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");'
+          if expected_tail not in s:
+              raise SystemExit("PATCH_VERIFY_FAILED: PID 2001 trailer writer layout differs from audited sequence")
+          print("PATCH_VERIFIED: no extra short before trailer mode byte")
 
           p.write_text(s, encoding="utf-8")
           print("Debug instrumentation injected successfully.")
