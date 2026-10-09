@@ -227,7 +227,7 @@ jobs:
               ("response = handleFrame(frame, socket);",
                "response = handleFrame(frame, socket);\n                    EmbeddedServerDebug.log(\"FRAME_HANDLED packets=\" + response.packets.size() + \" session=\" + (response.session != null));"),
               ("int pid = pk.readUnsignedShort();",
-               "int pid = pk.readUnsignedShort();\n            EmbeddedServerDebug.log(\"RX_PACKET pid=\" + pid + \" session=\" + (sess != null));"),
+               "int pid = pk.readUnsignedShort();\n            EmbeddedServerDebug.log(\"RX_PACKET pid=\" + pid + \" session=\" + (sess != null) + \" payload_bytes=\" + pk.available() + \" packet_hex=\" + EmbeddedServerDebug.hex(packet));"),
               ("private void writeResponse(DataOutputStream out, PacketList response) throws IOException {",
                "private void writeResponse(DataOutputStream out, PacketList response) throws IOException {\n        StringBuilder dbg = new StringBuilder(\"TX_RESPONSE packets=\").append(response.packets.size());\n        for (Packet p : response.packets) { dbg.append(\" [\").append(p.pid).append(p.error ? \":ERR\" : \"\").append(\",\").append(p.data.length).append(\"]\"); EmbeddedServerDebug.log(\"TX_PACKET pid=\" + p.pid + \" error=\" + p.error + \" data_hex=\" + EmbeddedServerDebug.hex(p.data)); }\n        EmbeddedServerDebug.log(dbg.toString());"),
           ]
@@ -287,6 +287,13 @@ jobs:
           if marker not in s:
               raise SystemExit("PATCH_NOT_FOUND: hVersion")
           s = s.replace(marker, inject, 1)
+
+          # Log unsupported protocol packets instead of silently swallowing them.
+          dispatch_marker = "            default: return new PacketResult();"
+          dispatch_replacement = "            default: EmbeddedServerDebug.log(\"UNHANDLED_PID pid=\" + pid + \" remaining_bytes=\" + pk.available()); return new PacketResult();"
+          if dispatch_marker not in s:
+              raise SystemExit("PATCH_NOT_FOUND: dispatch default")
+          s = s.replace(dispatch_marker, dispatch_replacement, 1)
 
           p.write_text(s, encoding="utf-8")
           print("Debug instrumentation injected successfully.")
