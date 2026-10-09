@@ -295,6 +295,40 @@ jobs:
               raise SystemExit("PATCH_NOT_FOUND: dispatch default")
           s = s.replace(dispatch_marker, dispatch_replacement, 1)
 
+          # Port V11's exact Python-seeded tile array into Java; Java Random is not
+          # compatible with Python random.Random and previously generated a different map.
+          import random
+          import re
+          w, h = 64, 48
+          rnd = random.Random(1234)
+          tiles = []
+          for y in range(h):
+              for x in range(w):
+                  tiles.append(rnd.choice(list(range(1, 10))) if rnd.random() < 0.85 else rnd.choice(list(range(10, 17))))
+          block = 0x8000
+          for x in range(w):
+              for y in (0, 1, h - 2, h - 1): tiles[y*w+x] = 17 | block
+          for y in range(h):
+              for x in (0, 1, w - 2, w - 1): tiles[y*w+x] = 18 | block
+          cx, cy = w // 2, h // 2 - 4
+          for y in range(h):
+              for x in range(w):
+                  dx, dy = (x-cx)/9.0, (y-cy)/5.0
+                  if dx*dx + dy*dy <= 1.0: tiles[y*w+x] = 37 | block
+          for x in range(2, w-2):
+              for y in (h-8, h-7): tiles[y*w+x] = 51 + (x % 3)
+          tile_method = "    private static int[] buildMapTiles() { return new int[]{" + ",".join(map(str, tiles)) + "}; }"
+          s, tile_count = re.subn(r"    private static int\\[\\] buildMapTiles\\(\\)\\s*\\{.*?\\n    \\}", tile_method, s, count=1, flags=re.S)
+          if tile_count != 1:
+              raise SystemExit("PATCH_NOT_FOUND: buildMapTiles")
+
+          # Make the client-side map request/completion subcommands observable.
+          move_marker = "        int sub = pk.readByte();"
+          move_replacement = "        int sub = pk.readByte(); EmbeddedServerDebug.log(\"MOVE_SUB sub=\" + sub + \" session=\" + (s != null) + \" char=\" + (s != null && s.ch != null) + \" remaining=\" + pk.available());"
+          if move_marker not in s:
+              raise SystemExit("PATCH_NOT_FOUND: hMove subcommand")
+          s = s.replace(move_marker, move_replacement, 1)
+
           p.write_text(s, encoding="utf-8")
           print("Debug instrumentation injected successfully.")
           PY
