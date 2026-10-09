@@ -299,3 +299,5 @@ jobs:
           path: source/mcvl-android-source/mcvl-android/out/MinhChuVoLam-2.0.3.apk
           if-no-files-found: error
           retention-days: 30
+
+# Re-triggered build to verify the embedded-server Android toolchain and APK artifact.
