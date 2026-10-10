@@ -245,16 +245,19 @@ jobs:
           s = s.replace(old_utf, new_utf, 1)
           print("PATCH_APPLIED: W.utf now matches DataInputStream.readUTF")
 
-          # Align PID 2001 map trailer with f.h(DataInputStream):
-          # after the z-count, the client reads one flag byte, a short tile index,
-          # then a modified-UTF string. The old serializer wrote an extra short,
-          # making the spawn tile index (2444) look like a UTF byte length.
+          # Align the PID 2001 trailer with f.h(DataInputStream):
+          # after the three layer-counts, the parser reads an index-count short,
+          # then a second short for the z-array count, then c(in)'s one-byte mode,
+          # then the spawn-index short. There is no UTF string after this field.
           old_tail = 'w.s16(0).s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");'
-          new_tail = 'w.s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");'
-          if old_tail not in s:
+          new_tail = 'w.s16(0).s16(0).s8(0).s16(c.ty*MAP_W+c.tx);'
+          if old_tail in s:
+              s = s.replace(old_tail, new_tail, 1)
+              print("PATCH_APPLIED: PID 2001 trailer now has index-count, z-count, mode, spawn-index")
+          elif new_tail in s:
+              print("PATCH_ALREADY_APPLIED: PID 2001 trailer matches f.h() parser")
+          else:
               raise SystemExit("PATCH_NOT_FOUND: PID 2001 map trailer alignment")
-          s = s.replace(old_tail, new_tail, 1)
-          print("PATCH_APPLIED: removed extra short before PID 2001 trailer flag")
 
           # Restore the 1026 FASTSTART handler.
           marker = "private static final int P_VERSION = 9950;"
@@ -358,29 +361,23 @@ jobs:
               raise SystemExit("PATCH_NOT_FOUND: empty response framing")
           s = s.replace(old_empty, new_empty, 1)
 
-          # PID 2001 map parser f.h() reads one byte (c(in) mode), then
-          # a short spawn index, then a UTF string. The old serializer had
-          # one extra short before the mode byte, shifting the spawn index
-          # into readUTF length and causing EOF while the client loads map.
+          # Verify the exact trailer order expected by f.h(DataInputStream):
+          # index count (short), z-array count (short), c(in) mode (byte),
+          # spawn index (short). The parser does not read a UTF string here.
           old_tail = 'w.s16(0).s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");'
-          new_tail = 'w.s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");'
+          new_tail = 'w.s16(0).s16(0).s8(0).s16(c.ty*MAP_W+c.tx);'
           if old_tail in s:
               s = s.replace(old_tail, new_tail, 1)
-              print("PATCH_APPLIED: PID 2001 map tail aligned to f.h() parser")
+              print("PATCH_APPLIED: corrected PID 2001 trailer field sequence")
           elif new_tail in s:
-              print("PATCH_ALREADY_APPLIED: PID 2001 map tail already aligned")
+              print("PATCH_ALREADY_APPLIED: corrected PID 2001 trailer")
           else:
-              raise SystemExit("PATCH_NOT_FOUND: PID 2001 map tail alignment")
-          if old_tail in s:
-              raise SystemExit("PATCH_FAILED: extra short still precedes trailer mode byte")
-          # Verify the actual writer chain by checking the exact old/new
-          # adjacent sequence, not the entire surrounding chain (which may
-          # contain additional legitimate count fields before this trailer).
-          if old_tail in s:
-              raise SystemExit("PATCH_VERIFY_FAILED: extra short remains before trailer mode byte")
+              raise SystemExit("PATCH_NOT_FOUND: PID 2001 trailer")
+          if old_tail in s or 'w.s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");' in s:
+              raise SystemExit("PATCH_VERIFY_FAILED: stale PID 2001 trailer remains")
           if new_tail not in s:
-              raise SystemExit("PATCH_VERIFY_FAILED: aligned trailer sequence not found")
-          print("PATCH_VERIFIED: trailer mode byte directly precedes spawn-index short")
+              raise SystemExit("PATCH_VERIFY_FAILED: expected PID 2001 trailer not found")
+          print("PATCH_VERIFIED: index-count, z-count, mode, spawn-index")
 
           # Fail the CI build if the PID 2001 serializer drifts from the
           # client parser's field order. These checks run against the patched Java source.
@@ -389,7 +386,7 @@ jobs:
           expected_map = 'w.s8(1).s32(1).s32(0).s16(0).s16(0).s16(0).utf("Đồng cỏ khởi đầu").s8(0).s8(0).s16(SPAWN_TY*MAP_W+SPAWN_TX).s16(0);'
           if expected_map not in s:
               raise SystemExit("PROTOCOL_CHECK_FAILED: PID 2001 header field order changed")
-          expected_tiles = 'w.s16(0).s8(MAP_H).s8(MAP_W).s8(1); for(int t:mapTiles)w.s16(t); w.s16(0); for(int i=0;i<3;i++)w.s16(0); w.s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");'
+          expected_tiles = 'w.s16(0).s8(MAP_H).s8(MAP_W).s8(1); for(int t:mapTiles)w.s16(t); w.s16(0); for(int i=0;i<3;i++)w.s16(0); w.s16(0).s16(0).s8(0).s16(c.ty*MAP_W+c.tx);'
           if expected_tiles not in s:
               raise SystemExit("PROTOCOL_CHECK_FAILED: PID 2001 dimensions/tile/trailer order changed")
           if 'w.s16(0).s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");' in s:
