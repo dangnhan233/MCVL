@@ -382,6 +382,19 @@ jobs:
               raise SystemExit("PATCH_VERIFY_FAILED: aligned trailer sequence not found")
           print("PATCH_VERIFIED: trailer mode byte directly precedes spawn-index short")
 
+          # Fail the CI build if the PID 2001 serializer drifts from the
+          # client parser's field order. These checks run against the patched Java source.
+          if 'W utf(String s)throws IOException{o.writeUTF(s);return this;}' not in s:
+              raise SystemExit("PROTOCOL_CHECK_FAILED: PID 2001 strings must use DataOutputStream.writeUTF")
+          expected_map = 'w.s8(1).s32(1).s32(0).s16(0).s16(0).s16(0).utf("Đồng cỏ khởi đầu").s8(0).s8(0).s16(SPAWN_TY*MAP_W+SPAWN_TX).s16(0);'
+          if expected_map not in s:
+              raise SystemExit("PROTOCOL_CHECK_FAILED: PID 2001 header field order changed")
+          expected_tiles = 'w.s16(0).s8(MAP_H).s8(MAP_W).s8(1); for(int t:mapTiles)w.s16(t); w.s16(0); for(int i=0;i<3;i++)w.s16(0); w.s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");'
+          if expected_tiles not in s:
+              raise SystemExit("PROTOCOL_CHECK_FAILED: PID 2001 dimensions/tile/trailer order changed")
+          if 'w.s16(0).s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");' in s:
+              raise SystemExit("PROTOCOL_CHECK_FAILED: extra short remains before PID 2001 trailer flag")
+          print("PROTOCOL_CHECK_PASS: PID 2001 header, dimensions, tile array, trailer and modified UTF")
           p.write_text(s, encoding="utf-8")
           print("Debug instrumentation injected successfully.")
           PY
