@@ -82,7 +82,7 @@ func _ready() -> void:
 	# Ô chặn đường (nước): data["blocked"] cùng kích thước với data["ground"].
 
 	# --- Camera: đặt tại điểm spawn, bị giới hạn trong phạm vi bản đồ ---
-	var spawn_arr: Array = data.get("spawn", [w * tile / 2, h * tile / 2])
+	var spawn_arr: Array = data.get("spawn", [w * tile * 0.5, h * tile * 0.5])
 	var spawn := Vector2(float(spawn_arr[0]), float(spawn_arr[1]))
 	_cam = Camera2D.new()
 	_cam.limit_left = 0
