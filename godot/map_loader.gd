@@ -55,8 +55,7 @@ func _ready() -> void:
 
 	# --- Nền ---
 	for i in range(w * h):
-		@warning_ignore("integer_division")
-		var cy: int = i / w
+		var cy: int = floori(float(i) / float(w))
 		ground.set_cell(Vector2i(i % w, cy), 0, Vector2i(int(arr[i]), 0))
 
 	# --- Vật thể (gốc ở chân/giữa đáy) ---
