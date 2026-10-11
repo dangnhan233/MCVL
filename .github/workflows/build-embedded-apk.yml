@@ -53,21 +53,18 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re, sys
+          import re
 
-          candidates = []
+          patched = False
           for p in Path("source").rglob("*.java"):
               try:
                   data = p.read_text(encoding="utf-8")
               except (UnicodeDecodeError, OSError):
                   continue
-              if "javax.microedition.lcdui" in data and "setClip" in data and "restore(" in data:
-                  candidates.append((p, data))
+              if "javax.microedition.lcdui" not in data or "setClip" not in data or "restore(" not in data:
+                  continue
 
-          patched = []
-          for p, data in candidates:
-              # Locate setClip method and find its balanced-brace body.
-              for match in re.finditer(r'\\bsetClip\\s*\\([^)]*\\)\\s*\\{', data):
+              for match in re.finditer(r'\bsetClip\s*\([^)]*\)\s*\{', data):
                   start = match.end()
                   depth = 1
                   i = start
@@ -77,22 +74,23 @@ jobs:
                       i += 1
                   if depth:
                       raise SystemExit(f"PATCH_FAILED: unbalanced setClip body in {p}")
+
                   body = data[start:i-1]
                   safe_body, n = re.subn(
-                      r'(?P<obj>(?:this\\.)?[A-Za-z_$][\\w$]*(?:\\.[A-Za-z_$][\\w$]*)*)\\.restore\\s*\\(\\s*\\)\\s*;',
+                      r'(?P<obj>(?:this\.)?[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\.restore\s*\(\s*\)\s*;',
                       lambda m: f'if ({m.group("obj")}.getSaveCount() > 1) {m.group("obj")}.restore();',
                       body
                   )
                   if n:
-                      data = data[:start] + safe_body + data[i-1:]
-                      patched.append((p, n))
+                      p.write_text(data[:start] + safe_body + data[i-1:], encoding="utf-8")
+                      print(f"PATCH_APPLIED: guarded {n} Canvas.restore() call(s) in {p}")
+                      patched = True
                       break
+              if patched:
+                  break
 
           if not patched:
               raise SystemExit("PATCH_FAILED: could not find a Java MIDP Graphics.setClip() restore() call to guard")
-          for p, n in patched:
-              p.write_text(data if p == patched[0][0] else next(x[1] for x in candidates if x[0] == p), encoding="utf-8")
-              print(f"PATCH_APPLIED: guarded {n} Canvas.restore() call(s) in {p}")
           PY
 
       - name: Inject MCVL server debug logging
