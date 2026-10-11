@@ -49,6 +49,52 @@ jobs:
           echo "Source directory: $SRC_DIR"
           echo "src_dir=$SRC_DIR" >> "$GITHUB_OUTPUT"
 
+      - name: Patch MIDP Graphics setClip restore underflow
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, sys
+
+          candidates = []
+          for p in Path("source").rglob("*.java"):
+              try:
+                  data = p.read_text(encoding="utf-8")
+              except (UnicodeDecodeError, OSError):
+                  continue
+              if "javax.microedition.lcdui" in data and "setClip" in data and "restore(" in data:
+                  candidates.append((p, data))
+
+          patched = []
+          for p, data in candidates:
+              # Locate setClip method and find its balanced-brace body.
+              for match in re.finditer(r'\\bsetClip\\s*\\([^)]*\\)\\s*\\{', data):
+                  start = match.end()
+                  depth = 1
+                  i = start
+                  while i < len(data) and depth:
+                      if data[i] == "{": depth += 1
+                      elif data[i] == "}": depth -= 1
+                      i += 1
+                  if depth:
+                      raise SystemExit(f"PATCH_FAILED: unbalanced setClip body in {p}")
+                  body = data[start:i-1]
+                  safe_body, n = re.subn(
+                      r'(?P<obj>(?:this\\.)?[A-Za-z_$][\\w$]*(?:\\.[A-Za-z_$][\\w$]*)*)\\.restore\\s*\\(\\s*\\)\\s*;',
+                      lambda m: f'if ({m.group("obj")}.getSaveCount() > 1) {m.group("obj")}.restore();',
+                      body
+                  )
+                  if n:
+                      data = data[:start] + safe_body + data[i-1:]
+                      patched.append((p, n))
+                      break
+
+          if not patched:
+              raise SystemExit("PATCH_FAILED: could not find a Java MIDP Graphics.setClip() restore() call to guard")
+          for p, n in patched:
+              p.write_text(data if p == patched[0][0] else next(x[1] for x in candidates if x[0] == p), encoding="utf-8")
+              print(f"PATCH_APPLIED: guarded {n} Canvas.restore() call(s) in {p}")
+          PY
+
       - name: Inject MCVL server debug logging
         working-directory: source/mcvl-android-source/mcvl-android
         run: |
@@ -430,7 +476,7 @@ jobs:
         run: |
           echo "## MCVL APK build" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "APK: `MinhChuVoLam-2.0.3.apk`" >> "$GITHUB_STEP_SUMMARY"
+          echo 'APK: MinhChuVoLam-2.0.3.apk' >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "Download the ZIP artifact **MCVL-2.0.3-embedded-server-debug** from the Artifacts section of this run." >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
