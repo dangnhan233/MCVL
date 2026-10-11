@@ -421,4 +421,19 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Publish direct download link in run summary
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          echo "## MCVL APK build" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "APK: `MinhChuVoLam-2.0.3.apk`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Download the ZIP artifact **MCVL-2.0.3-embedded-server-debug** from the Artifacts section of this run." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Build run: https://github.com/$REPO/actions/runs/$RUN_ID" >> "$GITHUB_STEP_SUMMARY"
+
 # Re-triggered build to verify the embedded-server Android toolchain and APK artifact.
