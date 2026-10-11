@@ -289,10 +289,10 @@ jobs:
           s = s.replace(old_utf, new_utf, 1)
           print("PATCH_APPLIED: W.utf now matches DataInputStream.readUTF")
 
-          # Align the PID 2001 trailer with f.h(DataInputStream):
-          # after the three layer-counts, the parser reads an index-count short,
-          # then a second short for the z-array count, then c(in)'s one-byte mode,
-          # then the spawn-index short. There is no UTF string after this field.
+          # Preserve the PID 2001 trailer used by the Python reference server:
+          # index-count short, z-array count short, one-byte mode, spawn-index short,
+          # then an empty UTF field. The empty UTF field is intentionally retained
+          # because the client may consume it while finishing map parsing.
           # Keep the trailing empty UTF field from the Python reference server.
           # The client may read this field after the spawn index; omitting it can leave
           # the map parser at EOF and the game stuck on the loading screen.
@@ -408,9 +408,6 @@ jobs:
               raise SystemExit("PATCH_NOT_FOUND: empty response framing")
           s = s.replace(old_empty, new_empty, 1)
 
-          # Verify the exact trailer order expected by f.h(DataInputStream):
-          # index count (short), z-array count (short), c(in) mode (byte),
-          # spawn index (short). The parser does not read a UTF string here.
           # Verify the reference-compatible trailer including its empty UTF field.
           expected_tail = 'w.s16(0).s16(0).s8(0).s16(c.ty*MAP_W+c.tx).utf("");'
           if expected_tail not in s:
