@@ -182,6 +182,35 @@ jobs:
                   }
               }
 
+              static synchronized void capturePid2001(byte[] data) {
+                  if (data == null || app == null) return;
+                  java.io.File dir = app.getExternalFilesDir("pid2001_capture");
+                  if (dir == null) dir = new java.io.File(app.getFilesDir(), "pid2001_capture");
+                  java.io.FileOutputStream out = null;
+                  try {
+                      if (!dir.exists() && !dir.mkdirs() && !dir.isDirectory()) return;
+                      long now = System.currentTimeMillis();
+                      String stem = "pid2001_" + now + "_" + java.util.UUID.randomUUID().toString().replace("-", "") + "_" + data.length;
+                      java.io.File bin = new java.io.File(dir, stem + ".bin");
+                      out = new java.io.FileOutputStream(bin);
+                      out.write(data);
+                      out.flush();
+                      out.close();
+                      out = null;
+                      byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(data);
+                      StringBuilder sha = new StringBuilder();
+                      for (byte b : digest) sha.append(String.format(Locale.US, "%02x", b & 0xff));
+                      String meta = "pid=2001\\nlength=" + data.length + "\\ncaptured_epoch_ms=" + now + "\\nsha256=" + sha + "\\n";
+                      java.io.FileOutputStream sidecar = new java.io.FileOutputStream(new java.io.File(dir, stem + ".txt"));
+                      try { sidecar.write(meta.getBytes(StandardCharsets.UTF_8)); sidecar.flush(); } finally { sidecar.close(); }
+                      log("PID2001_CAPTURE saved=" + bin.getAbsolutePath() + " length=" + data.length + " sha256=" + sha);
+                  } catch (Throwable t) {
+                      log("PID2001_CAPTURE_FAILED " + t.getClass().getName() + ": " + String.valueOf(t.getMessage()));
+                  } finally {
+                      if (out != null) try { out.close(); } catch (Exception ignored) {}
+                  }
+              }
+
               static String hex(byte[] data) {
                   if (data == null) return "";
                   StringBuilder sb = new StringBuilder(data.length * 2);
@@ -273,7 +302,7 @@ jobs:
               ("int pid = pk.readUnsignedShort();",
                "int pid = pk.readUnsignedShort();\n            EmbeddedServerDebug.log(\"RX_PACKET pid=\" + pid + \" session=\" + (sess != null) + \" payload_bytes=\" + pk.available() + \" packet_hex=\" + EmbeddedServerDebug.hex(packet));"),
               ("private void writeResponse(DataOutputStream out, PacketList response) throws IOException {",
-               "private void writeResponse(DataOutputStream out, PacketList response) throws IOException {\n        StringBuilder dbg = new StringBuilder(\"TX_RESPONSE packets=\").append(response.packets.size());\n        for (Packet p : response.packets) { dbg.append(\" [\").append(p.pid).append(p.error ? \":ERR\" : \"\").append(\",\").append(p.data.length).append(\"]\"); EmbeddedServerDebug.log(\"TX_PACKET pid=\" + p.pid + \" error=\" + p.error + \" data_hex=\" + EmbeddedServerDebug.hex(p.data)); }\n        EmbeddedServerDebug.log(dbg.toString());"),
+               "private void writeResponse(DataOutputStream out, PacketList response) throws IOException {\n        StringBuilder dbg = new StringBuilder(\"TX_RESPONSE packets=\").append(response.packets.size());\n        for (Packet p : response.packets) { if (p.pid == P_MAP) EmbeddedServerDebug.capturePid2001(p.data); dbg.append(\" [\").append(p.pid).append(p.error ? \":ERR\" : \"\").append(\",\").append(p.data.length).append(\"]\"); EmbeddedServerDebug.log(\"TX_PACKET pid=\" + p.pid + \" error=\" + p.error + \" data_hex=\" + EmbeddedServerDebug.hex(p.data)); }\n        EmbeddedServerDebug.log(dbg.toString());"),
           ]
           for old, new in patches:
               if old not in s:
